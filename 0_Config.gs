@@ -15,7 +15,7 @@ const VERSION_SISTEMA = "v7.3 - Arquitectura Modular y Renombrado Semántico";
 const CARPETA_CONTENEDORA_PRINCIPAL = "Facturas CFDI";
 const NOMBRE_CARPETA_RAIZ           = "Descarga CFDI Recibidos";
 const NOMBRE_HOJA_CALCULO           = "Registro de Facturas CFDI";
-const NOMBRE_CARPETA_DESORGANIZADA  = "Facturas CFDI Recibidas"; // Usado para la carga local manual
+const NOMBRE_CARPETA_DESORGANIZADA  = "Facturas no Organizadas"; // Usado para la carga local manual
 
 /**
  * CRONOLOGÍA CORPORATIVA
@@ -162,11 +162,25 @@ function obtenerLimiteTiempoProcesamientoMs() {
 /* Helper to validate Clave Catastral */
 function esClaveCatastralValida(clave) {
   if (!clave) return false;
-  // Must contain a hyphen (to differentiate from plain numeric SAT certificates)
-  if (!clave.includes('-')) return false;
-  // Remove any non‑digit characters (including hyphens)
-  const soloDigitos = clave.replace(/[^0-9]/g, '');
-  // Require at least 15 digits (covers typical formats like 801068006001006-)
-  return soloDigitos.length >= 15;
+  const limpia = clave.toString().trim().toUpperCase();
+  
+  // Regla 1: Nunca inicia con 0
+  if (limpia.indexOf("0") === 0) return false;
+  
+  // Regla 2: Solo caracteres alfanuméricos y guiones
+  const regexPermitido = /^[A-Z0-9\-]+$/;
+  if (!regexPermitido.test(limpia)) return false;
+  
+  // Regla 3: Si contiene guión (Playa/Tulum)
+  if (limpia.includes("-")) {
+    const partes = limpia.split("-");
+    // La base antes del guión debe tener exactamente 15 caracteres
+    if (partes[0].length !== 15) return false;
+    // El total incluyendo el guión debe ser de máximo 19 caracteres
+    return limpia.length >= 16 && limpia.length <= 19;
+  } else {
+    // Si no contiene guión, debe tener exactamente 15 caracteres (Playa/Tulum) o entre 17 y 18 caracteres (Cancún)
+    return limpia.length === 15 || (limpia.length >= 17 && limpia.length <= 18);
+  }
 }
 

@@ -224,6 +224,23 @@
       margin-top: 14px;
       color: var(--text-muted);
       text-align: center;
+      white-space: pre-line;
+    }
+
+    /* Barra de progreso interactiva */
+    .progress-bar-container {
+      width: 100%;
+      background-color: var(--border-color);
+      border-radius: 4px;
+      margin-top: 14px;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-bar-fill {
+      height: 6px;
+      width: 0%;
+      background-color: var(--color-primary);
+      transition: width 0.3s ease;
     }
 
     /* Modales y Alertas Personalizados */
@@ -341,6 +358,13 @@
     Organizar Carpeta Descargados
   </button>
 
+  <button id="btn-backfill" class="btn btn-legacy" onclick="confirmarBackfill()">
+    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#f59e0b">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+    </svg>
+    Actualizar Claves, Fechas y Refs
+  </button>
+
   <!-- Sección: Acción Gmail -->
   <div class="section-label mt-16">Acción Consolidada Gmail</div>
   <button id="btn-todo" class="btn btn-all" onclick="procesarTodo()">
@@ -379,6 +403,9 @@
   <div id="loader" class="loader-container">
     <div class="spinner"></div>
     <div id="loader-msg" class="loader-text">Conectando con el servidor...</div>
+    <div id="progress-container" class="progress-bar-container">
+      <div id="progress-bar" class="progress-bar-fill"></div>
+    </div>
   </div>
 
   <!-- Modal de Confirmación -->
@@ -449,6 +476,7 @@
     // Funciones del Ciclo de UI
     function bloquearInterfaz(mensaje) {
       document.getElementById('btn-legacy').disabled = true;
+      document.getElementById('btn-backfill').disabled = true;
       document.getElementById('btn-todo').disabled = true;
       document.getElementById('btn-cc').disabled = true;
       document.getElementById('btn-py').disabled = true;
@@ -457,13 +485,16 @@
       document.getElementById('loader').style.display = 'flex';
     }
 
+    // Desbloqueo seguro de la botonera lateral
     function desbloquearInterfaz() {
       document.getElementById('btn-legacy').disabled = false;
+      document.getElementById('btn-backfill').disabled = false;
       document.getElementById('btn-todo').disabled = false;
       document.getElementById('btn-cc').disabled = false;
       document.getElementById('btn-py').disabled = false;
       document.getElementById('btn-tl').disabled = false;
       document.getElementById('loader').style.display = 'none';
+      document.getElementById('progress-container').style.display = 'none';
     }
 
     // Handlers de Acciones del Menú
@@ -489,6 +520,95 @@
           abrirAlerta('Error de Ejecución', 'Error crítico: ' + err);
         })
         .apiOrganizarCarpetaDescargados();
+    }
+
+    // Confirmación y lanzamiento del backfill histórico de clave catastral, fechas y referencias
+    function confirmarBackfill() {
+      abrirConfirm(
+        '¿Confirmar Enriquecimiento?', 
+        'Deseas analizar las facturas registradas en las hojas contables. Se escanearán aquellas que no tengan Clave Catastral, Fecha Límite Pago o Referencia Bancaria, se recuperará su PDF de Drive mediante OCR y se actualizará su información.',
+        function() {
+          ejecutarBackfill();
+        }
+      );
+    }
+
+    // Variables globales de progreso para el Backfill por lotes
+    let totalPendientesGlobal = 0;
+    let procesadosGlobal = 0;
+    let actualizadosGlobal = 0;
+    let hojaActualDisplay = 'Iniciando';
+
+    function ejecutarBackfill() {
+      bloquearInterfaz('Contabilizando registros pendientes en las hojas de cálculo...');
+      document.getElementById('progress-container').style.display = 'none';
+      document.getElementById('progress-bar').style.width = '0%';
+      hojaActualDisplay = 'Escaneando hojas contables';
+      
+      google.script.run
+         .withSuccessHandler(function(response) {
+          if (response.totalPendientes === 0) {
+            desbloquearInterfaz();
+            abrirAlerta('Operación Finalizada', 'No se encontraron registros pendientes con datos vacíos o "N/A".');
+            return;
+          }
+          
+          totalPendientesGlobal = response.totalPendientes;
+          procesadosGlobal = 0;
+          actualizadosGlobal = 0;
+          
+          document.getElementById('progress-container').style.display = 'block';
+          procesarSiguienteLoteBackfill();
+        })
+        .withFailureHandler(function(err) {
+          desbloquearInterfaz();
+          abrirAlerta('Error de Inicialización', 'No se pudo obtener la cantidad de pendientes: ' + err);
+        })
+        .apiObtenerMetricasBackfill();
+    }
+
+    function procesarSiguienteLoteBackfill() {
+      let porcentaje = Math.min(100, Math.round((procesadosGlobal / totalPendientesGlobal) * 100));
+      document.getElementById('progress-bar').style.width = porcentaje + '%';
+      
+      let msg = 'Enriqueciendo claves, fechas y referencias...\n' + 
+                '📍 Última pestaña: ' + hojaActualDisplay + '\n' +
+                'Progreso: ' + procesadosGlobal + ' de ' + totalPendientesGlobal + ' (' + porcentaje + '%)\n' +
+                'Actualizadas: ' + actualizadosGlobal;
+      
+      document.getElementById('loader-msg').innerText = msg;
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (!result.exito) {
+            desbloquearInterfaz();
+            abrirAlerta('Error en Lote', 'Fallo al procesar el lote: ' + result.mensaje);
+            return;
+          }
+          
+          procesadosGlobal += result.procesadosEnLote;
+          actualizadosGlobal += result.actualizadosEnLote;
+          if (result.hojaActual) {
+            hojaActualDisplay = result.hojaActual;
+          }
+          
+          if (result.completado || result.restantes === 0 || result.procesadosEnLote === 0) {
+            document.getElementById('progress-bar').style.width = '100%';
+            desbloquearInterfaz();
+            abrirAlerta(
+              'Enriquecimiento Completado', 
+              'Se han analizado todos los registros pendientes.\n\n' +
+              '✅ Registros procesados y actualizados con éxito.'
+            );
+          } else {
+            procesarSiguienteLoteBackfill();
+          }
+        })
+        .withFailureHandler(function(err) {
+          desbloquearInterfaz();
+          abrirAlerta('Error de Ejecución', 'Se interrumpió la conexión: ' + err);
+        })
+        .apiProcesarLoteBackfill();
     }
 
     function procesarTodo() {

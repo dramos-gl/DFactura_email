@@ -22,8 +22,14 @@ function haExcedidoTiempo() {
  * PUNTOS DE ENTRADA DESDE LA INTERFAZ (UI)
  * Estas funciones son llamadas directamente por google.script.run desde Interfaz.html
  */
-
 function apiProcesarTodo() {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000); // Esperar hasta 30 segundos
+  } catch (errLock) {
+    return { exito: false, mensaje: "⚠️ El sistema está ocupado procesando otro lote de facturas. Por favor, intenta de nuevo en un momento." };
+  }
+
   // Reinicio del cronómetro global al inicio de cada ejecución completa
   tiempoInicioGlobal    = new Date().getTime();
   limiteTiempoCalculado = null; // Fuerza recalculación del límite dinámico
@@ -99,10 +105,19 @@ function apiProcesarTodo() {
 
   } catch (error) {
     return { exito: false, mensaje: `Fallo Crítico en apiProcesarTodo: ${error.toString()}` };
+  } finally {
+    lock.releaseLock(); // Liberar bloqueo
   }
 }
 
 function apiProcesarMunicipio(claveMunicipio) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000); // Esperar hasta 30 segundos
+  } catch (errLock) {
+    return { exito: false, mensaje: "⚠️ El sistema está ocupado procesando otro lote de facturas. Por favor, intenta de nuevo en un momento." };
+  }
+
   // Reinicio del cronómetro global para ejecuciones individuales por municipio
   tiempoInicioGlobal    = new Date().getTime();
   limiteTiempoCalculado = null; // Fuerza recalculación del límite dinámico
@@ -155,6 +170,8 @@ function apiProcesarMunicipio(claveMunicipio) {
 
   } catch (error) {
     return { exito: false, mensaje: `Error al procesar ${claveMunicipio}: ${error.toString()}` };
+  } finally {
+    lock.releaseLock(); // Liberar bloqueo
   }
 }
 
@@ -172,9 +189,23 @@ function procesarMunicipio(clave) {
   const hojaErrores = obtenerOCrearHojaEnSpreadsheet(libroCalculo, "⚠️ Errores_Cola");
   
   // Garantizar encabezados si la hoja contable es nueva
-  if (hojaDestino.getLastRow() === 0) {
+  const ultimaFilaInicial = hojaDestino.getLastRow();
+  if (ultimaFilaInicial === 0) {
     hojaDestino.appendRow(ENCABEZADOS_ESTANDAR);
     hojaDestino.getRange(1, 1, 1, ENCABEZADOS_ESTANDAR.length).setFontWeight("bold").setBackground("#EAEEF3");
+  }
+  
+  // Precarga de Caché en memoria (Set) de IDs y Hashes para optimizar el rendimiento (QA v7.5)
+  const messageIdsExistentes = new Set();
+  const hashesExistentes = new Set();
+  if (ultimaFilaInicial > 1) {
+    // Lectura de columna 2 (IDs Origen)
+    const ids = hojaDestino.getRange(2, 2, ultimaFilaInicial - 1, 1).getValues();
+    ids.forEach(r => { if (r[0] !== undefined && r[0] !== null) messageIdsExistentes.add(r[0].toString().trim()); });
+    
+    // Lectura de columna 22 (Hashes XML)
+    const hashes = hojaDestino.getRange(2, 22, ultimaFilaInicial - 1, 1).getValues();
+    hashes.forEach(r => { if (r[0] !== undefined && r[0] !== null) hashesExistentes.add(r[0].toString().trim()); });
   }
   
   // Construcción de la consulta query nativa de Gmail (Filtra solo correos no leídos)
@@ -206,8 +237,8 @@ function procesarMunicipio(clave) {
       if (mensaje.isUnread()) {
         let messageId = mensaje.getId();
         
-        // 1. Filtro estricto de seguridad contra duplicados en base de datos
-        if (isMessageIdAlreadyLogged(hojaDestino, messageId)) {
+        // 1. Filtro estricto de seguridad contra duplicados en base de datos usando Set en memoria (QA v7.5)
+        if (messageIdsExistentes.has(messageId.toString().trim())) {
           mensaje.markRead(); // Si ya existe, lo marcamos como leído y avanzamos para no generar basura
           continue;
         }
@@ -239,17 +270,19 @@ function procesarMunicipio(clave) {
           continue;
         }
         
-        // 4. Pasar los archivos validados al motor de Drive respetando la firma posicional v7.3
+        // 4. Pasar los archivos validados al motor de Drive respetando la firma posicional v7.3 extendida con Caché (QA v7.5)
         try {
           // LLAMADA ULTRA-CAUTELOSA CON PARÁMETROS INDIVIDUALES:
-          // Firma esperada: (pdfAttachment, xmlAttachment, municipioClave, messageId, fechaOrigen, asuntoOrigen)
+          // Firma esperada: (pdfAttachment, xmlAttachment, municipioClave, messageId, fechaOrigen, asuntoOrigen, cacheMessageIds, cacheHashes)
           let exitoProcesamiento = inyectarArchivosAMotorContable(
             archivoPdf, 
             archivoXml, 
             claveEstandar, 
             messageId, 
             mensaje.getDate(), 
-            mensaje.getSubject()
+            mensaje.getSubject(),
+            messageIdsExistentes,
+            hashesExistentes
           );
           
           if (exitoProcesamiento) {

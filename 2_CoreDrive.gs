@@ -14,7 +14,7 @@
  * @param {string} asuntoOrigen - Asunto del correo o contexto de entrada.
  * @return {boolean} true si la transacción fue exitosa, false si requirió aislamiento de error.
  */
-function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioClave, messageId, fechaOrigen, asuntoOrigen) {
+function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioClave, messageId, fechaOrigen, asuntoOrigen, cacheMessageIds = null, cacheHashes = null) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const hojaErrores = ss.getSheetByName("⚠️ Errores_Cola");
   
@@ -51,7 +51,7 @@ function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioC
 
     // 3. Ejecución del Canal Secundario: OCR e Inteligencia del PDF
     const pdfTextoCrudo = extraerTextoDelPdfConOCR(pdfAttachment, hojaErrores);
-    const metaPdf = analizarTextoPdfInversivo(pdfTextoCrudo);
+    const metaPdf = analizarTextoPdfInversivo(pdfTextoCrudo, municipioClave);
 
     // 4. Mecanismo de Fallback y Resolución de Variables Cruzadas
     const totalFinal        = (metaXml.total !== "N/A") ? metaXml.total : metaPdf.total;
@@ -86,13 +86,14 @@ function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioC
     // Desglose cronológico basado en la fecha oficial del XML (Fallback a fecha del correo)
     // v7.5: Estructura Año / Mes-Abreviado (3 letras) / Día numérico
     let fechaParaArbol = fechaOrigen;
+    let anioStr, mesStr, diaStr;
     if (metaXml.fechaExpedicion !== "N/A") {
       // Extrae año (AAAA), mes (MM) y día (DD) del formato ISO AAAA-MM-DD
       const matchIso = metaXml.fechaExpedicion.match(/^(\d{4})-(\d{2})-(\d{2})/);
       if (matchIso) {
-        var anioStr = matchIso[1];
-        var mesStr  = MESES_ABREVIADOS[parseInt(matchIso[2], 10) - 1]; // 0-indexed: "01" → "ene"
-        var diaStr  = matchIso[3];                                      // Ej: "05"
+        anioStr = matchIso[1];
+        mesStr  = MESES_ABREVIADOS[parseInt(matchIso[2], 10) - 1]; // 0-indexed: "01" → "ene"
+        diaStr  = matchIso[3];                                      // Ej: "05"
       }
     }
     
@@ -181,9 +182,11 @@ function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioC
     // Compute hash of XML content for duplicate detection
     const hashXml = obtenerHashXml(xmlTextoCrudo);
 
-    // Verificar si el hash ya existe en la hoja destino (columna 22)
+    // Verificar si el hash ya existe en la hoja destino (columna 22) usando Set en memoria si está disponible (QA v7.5)
     let esDuplicado = false;
-    if (hojaDestino.getLastRow() > 1) {
+    if (cacheHashes) {
+      esDuplicado = cacheHashes.has(hashXml);
+    } else if (hojaDestino.getLastRow() > 1) {
       const hashValues = hojaDestino.getRange(2, 22, hojaDestino.getLastRow() - 1, 1).getValues();
       esDuplicado = hashValues.some(row => row[0] === hashXml);
     }
@@ -249,9 +252,13 @@ function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioC
     hojaDestino.appendRow(filaDatos);
     const ultimaFila = hojaDestino.getLastRow();
 
-    // Formateo de seguridad visual en caso de discrepancia contable detectada
+    // Si la transacción fue exitosa, agregamos al caché en memoria para evitar duplicados en el mismo lote (QA v7.5)
+    if (cacheHashes) cacheHashes.add(hashXml);
+    if (cacheMessageIds) cacheMessageIds.add(messageId.toString().trim());
+
+    // Formateo de seguridad visual en caso de discrepancia contable detectada (QA v7.5: Formatea las 22 columnas completas)
     if (flagAlertaMonto) {
-      hojaDestino.getRange(ultimaFila, 1, 1, 21).setBackground("#FADBD8"); // Alerta color rojo/coral suave
+      hojaDestino.getRange(ultimaFila, 1, 1, ENCABEZADOS_ESTANDAR.length).setBackground("#FADBD8"); // Alerta color rojo/coral suave
       if (hojaErrores) {
         hojaErrores.appendRow([new Date(), "ALERTA_MONTO", folioFinal, `Discrepancia detectada en fila ${ultimaFila} de ${config.hojaDestino}. XML: ${metaXml.total} vs PDF: ${metaPdf.total}`]);
       }

@@ -97,12 +97,21 @@ function extraerTextoDelPdfConOCR(pdfAttachment, hojaErrores) {
   let ocrDocId = null;
   
   try {
-    const blob     = pdfAttachment.getBlob();
+    let blob;
+    if (typeof pdfAttachment.getBlob === 'function') {
+      blob = pdfAttachment.getBlob();
+    } else if (typeof pdfAttachment.copyBlob === 'function') {
+      blob = pdfAttachment.copyBlob();
+    } else {
+      blob = pdfAttachment; // Asumir que ya es un Blob
+    }
+    
+    const nombreArchivo = (blob && typeof blob.getName === 'function') ? blob.getName() : "archivo.pdf";
     const token    = ScriptApp.getOAuthToken();
     const boundary = "FormBoundary" + Utilities.getUuid().replace(/-/g, "");
 
     const metadataJson = JSON.stringify({
-      name    : `OCR_TMP_${pdfAttachment.getName()}`,
+      name    : `OCR_TMP_${nombreArchivo}`,
       mimeType: "application/vnd.google-apps.document"
     });
 
@@ -135,10 +144,23 @@ function extraerTextoDelPdfConOCR(pdfAttachment, hojaErrores) {
     ocrDocId = fileData.id;
     if (!ocrDocId) return null;
 
-    // Pausa técnica de estabilización para asegurar que el motor de Drive terminó de volcar el texto
+    // Pausa técnica de estabilización para asegurar que el motor de Drive terminó de volcar el texto (QA v7.5)
     Utilities.sleep(1500); 
     
-    return DocumentApp.openById(ocrDocId).getBody().getText();
+    let doc = null;
+    let intentos = 0;
+    while (intentos < 3) {
+      try {
+        doc = DocumentApp.openById(ocrDocId);
+        break; // Abre con éxito
+      } catch (errOpen) {
+        intentos++;
+        if (intentos === 3) throw errOpen; // Excedió reintentos
+        Utilities.sleep(1000 * intentos); // Pausa incremental (1s, 2s)
+      }
+    }
+    
+    return doc.getBody().getText();
     
   } catch (e) {
     if (hojaErrores) hojaErrores.appendRow([new Date(), "OCR_EXCEPCION", pdfAttachment.getName(), e.toString()]);
@@ -167,7 +189,7 @@ function extraerTextoDelPdfConOCR(pdfAttachment, hojaErrores) {
  * * @param {string} textoPdf - Texto plano recuperado del proceso de OCR.
  * @return {Object} Objeto con las extracciones mapeadas de forma individual.
  */
-function analizarTextoPdfInversivo(textoPdf) {
+function analizarTextoPdfInversivo(textoPdf, municipioClave = null) {
   let datos = { folio: "N/A", total: "N/A", claveCatastral: "N/A", fechaLimitePago: "N/A", referenciaCliente: "N/A", descripcionPdf: "N/A" };
   if (!textoPdf) return datos;
 
@@ -179,22 +201,29 @@ function analizarTextoPdfInversivo(textoPdf) {
   const matchTotal = textoPdf.match(/(?:Total|Importe\s*Total|Neto\s*a\s*Pagar)\s*[:\$]?\s*([\d,]+\.\d{2})/i);
   if (matchTotal && matchTotal[1]) datos.total = matchTotal[1].replace(/,/g, '');
 
-  // 3. Extracción de la Clave Catastral del Inmueble
-    // 3. Extracción de la Clave Catastral del Inmueble
-    const matchEtiqueta = textoPdf.match(/(?:Clave\s*Catastral|Reg\.\s*Catastral|CC|Catastro|NÚMERO\s*CATASTRAL|Clave\s*Inmueble)\s*[:\s]\s*([A-Za-z0-9-]+)/i);
+    // 3. Extracción de la Clave Catastral del Inmueble (QA v8.6 - Soporte C.C Compacto, Caída Estructural y Sin Etiqueta)
+    const regexCatastral = /(?:Clave\s*Catastral|Reg\.\s*Catastral|C\.?\s*C\.?|Catastro|NÚMERO\s*CATASTRAL|Clave\s*Inmueble)\s*[:\-\.\s]*\s*([a-z0-9\-]{15,22}|[\d ]{15,25})/i;
+    const matchEtiqueta = textoPdf.match(regexCatastral);
     let posibleClave = null;
     if (matchEtiqueta && matchEtiqueta[1]) {
-      posibleClave = matchEtiqueta[1].trim();
+      // Remover espacios en blanco internos para unificar formatos (ej. "109 002..." -> "109002...")
+      posibleClave = matchEtiqueta[1].trim().replace(/\s+/g, '');
     } else {
-      // Intentar capturar formatos típicos con guión final, p.ej. 801068006001006-
-      const matchHyphen = textoPdf.match(/\b\d{15,}-\b/);
-      if (matchHyphen) {
-        posibleClave = matchHyphen[0];
+      // Caída Estructural Segura (Para facturas sin etiqueta o con etiquetas no estándar)
+      // Cancún: exactamente 18 caracteres alfanuméricos que no inician con 0
+      const matchCancunRaw = textoPdf.match(/\b[1-9][A-Z0-9]{17}\b/i);
+      // Playa del Carmen / Tulum: 15 dígitos base que no inician con 0, con guión y sufijo opcional de 1-3 dígitos
+      const matchPlayaRaw = textoPdf.match(/\b[1-9]\d{14}(?:-\d{1,3})?\b/);
+      
+      if (matchCancunRaw) {
+        posibleClave = matchCancunRaw[0].trim();
+      } else if (matchPlayaRaw) {
+        posibleClave = matchPlayaRaw[0].trim();
       } else {
-        // Expresión estructural para llaves catastrales del sureste (ej. 001-002-003-001)
+        // Expresión estructural para llaves catastrales con guiones obligatorios (ej. 001-002-003-001 o 109002005-03)
         const matchEstructural = textoPdf.match(/\b(\d{3,}-\d{2,}-\d{2,}-\d{3,})\b/) || textoPdf.match(/\b(\d{9,}-\d{2,})\b/);
         if (matchEstructural) {
-          posibleClave = matchEstructural[1];
+          posibleClave = matchEstructural[1].trim();
         }
       }
     }
@@ -205,13 +234,35 @@ function analizarTextoPdfInversivo(textoPdf) {
       datos.claveCatastral = "N/A";
     }
 
-  // 4. Extracción de Fecha Límite de Vencimiento / Pago [cite: 33, 34]
-  const matchFechaLimite = textoPdf.match(/(?:Límite\s*de\s*Pago|Páguese\s*antes\s*del|Fecha\s*Vencimiento|Vence\s*el)\s*[:\s]?\s*([\d]{2}[-\/][\d]{2}[-\/][\d]{4}|[\d]{4}[-\/][\d]{2}[-\/][\d]{2}|[\d]{2}\s*de\s*[a-zA-Z]+\s*de\s*[\d]{4})/i);
+  // 4. Extracción de Fecha Límite de Vencimiento / Pago
+  // QA v8.7: Soportar "Fecha límite de pago" con posibles saltos de línea intermedios
+  const matchFechaLimite = textoPdf.match(/(?:Fecha\s*l\u00edmite\s*de\s*pago|L\u00edmite\s*de\s*Pago|P\u00e1guese\s*antes\s*del|Fecha\s*Vencimiento|Vence\s*el)\s*[:\-\.\s]*\s*([\d]{2}[-\/][\d]{2}[-\/][\d]{4}|[\d]{4}[-\/][\d]{2}[-\/][\d]{2}|[\d]{2}\s*de\s*[a-zA-Z]+\s*de\s*[\d]{4})/i);
   if (matchFechaLimite && matchFechaLimite[1]) datos.fechaLimitePago = matchFechaLimite[1].trim();
 
-  // 5. Extracción de Referencia Bancaria o de Captura [cite: 23, 24]
-  const matchRef = textoPdf.match(/(?:Referencia|Línea\s*de\s*Captura|Ref\.\s*Bancaria)\s*[:\s]?\s*([0-9A-Z\s-]{10,30})/i);
-  if (matchRef && matchRef[1]) datos.referenciaCliente = matchRef[1].replace(/\s+/g, '').trim();
+  // 5. Extracción de Referencia Bancaria o de Captura
+  // QA v8.7: Reglas dinámicas por municipio para Cancún y Playa/Tulum
+  const muniLimpio = municipioClave ? municipioClave.toString().toUpperCase().trim() : "";
+  
+  if (muniLimpio === "CANCUN") {
+    // Exclusivo Cancún: Buscar identificador de Recibo de Pago relacionado
+    const matchRecibo = textoPdf.match(/(?:RECIBO\s*DE\s*PAGO)\s*[:\-\.\s]*\s*([A-Z0-9\-]+)/i);
+    if (matchRecibo && matchRecibo[1]) {
+      datos.referenciaCliente = matchRecibo[1].trim();
+    }
+  } else if (muniLimpio === "PLAYA" || muniLimpio === "TULUM") {
+    // Exclusivo Playa/Tulum: Buscar "Referencia del cliente", eliminar saltos de línea intermedios y descartar prefijo YYYYMMDD-
+    const textoSinSaltos = textoPdf.replace(/[\r\n]+/g, '');
+    const matchPlayaRef = textoSinSaltos.match(/(?:Referencia\s*del\s*cliente)\s*[:\-\.\s]*\s*(?:\d{8}-)?([A-Z0-9\-]+)/i);
+    if (matchPlayaRef && matchPlayaRef[1]) {
+      datos.referenciaCliente = matchPlayaRef[1].replace(/\s+/g, '').trim();
+    }
+  }
+  
+  // Fallback de contingencia si no se cumplió la regla específica o no se pasó municipio
+  if (datos.referenciaCliente === "N/A" || !datos.referenciaCliente) {
+    const matchRef = textoPdf.match(/(?:Referencia|L\u00ednea\s*de\s*Captura|Ref\.\s*Bancaria)\s*[:\s]?\s*([0-9A-Z\s-]{10,30})/i);
+    if (matchRef && matchRef[1]) datos.referenciaCliente = matchRef[1].replace(/\s+/g, '').trim();
+  }
 
 // 6. CORRECCIÓN EXCLUSIVA PARA EL DETALLE DE CONCEPTOS DEL PDF (v7.2 - Con Inteligencia Anti-Basura)
   // Busca cadenas de texto en mayúsculas que se sitúen justo después de códigos contables municipales

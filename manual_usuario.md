@@ -1,7 +1,7 @@
 # 📖 Manual de Usuario y Configuración de Infraestructura
-## Sistema FactuMail v7.4 — Automatización Contable de Facturación Municipal CFDI
+## Sistema FactuMail v7.6 — Automatización Contable de Facturación Municipal CFDI
 
-> **Versión:** v7.4 · **Entorno objetivo:** Google Workspace Empresarial · **Actualizado:** 22 Mayo 2026
+> **Versión:** v7.6 · **Entorno objetivo:** Google Workspace Empresarial · **Actualizado:** Junio 2026
 
 Este manual describe todos los prerrequisitos, ubicaciones, nombres de directorios, configuraciones en Gmail, estructuras en Sheets y lineamientos de mantenimiento de código necesarios para asegurar el correcto funcionamiento del ecosistema automatizado de procesamiento CFDI **FactuMail**.
 
@@ -43,7 +43,7 @@ En la raíz de su Google Drive (`Mi Unidad`), debe existir una carpeta principal
 ### 🗂️ Subcarpetas de Control Técnico
 Dentro de `Facturas CFDI`, el script creará o buscará las siguientes carpetas:
 1.  **`Descarga CFDI Recibidos`**: Es la carpeta raíz del archivo histórico contable.
-2.  **`Facturas CFDI Recibidas`**: **[Crítico para Carga Manual]** Es la carpeta temporal de entrada. Si un usuario desea subir archivos a mano, debe guardarlos en esta carpeta (en pares de archivos `.xml` y `.pdf` con nombres similares). Tras ejecutar la opción "Organizar Carpeta Descargados" en la Consola, el script los procesará, los moverá a su ruta definitiva renombrados y limpiará esta carpeta para evitar duplicidades.
+2.  **`Facturas no Organizadas`**: **[Crítico para Carga Manual]** Es la carpeta temporal de entrada. Si un usuario desea subir archivos a mano, debe guardarlos en esta carpeta (en pares de archivos `.xml` y `.pdf` con nombres similares). Tras ejecutar la opción "Organizar Carpeta Descargados" en la Consola, el script los procesará, los moverá a su ruta definitiva renombrados y limpiará esta carpeta para evitar duplicidades.
 
 ### 🌳 Árbol Cronológico Automatizado (Destino Final)
 Cuando el motor procesa un par de archivos con éxito (vía Gmail o Carga Local), los guarda en el repositorio definitivo estructurado bajo la siguiente jerarquía exacta basada en el municipio y la fecha de expedición fiscal de la factura:
@@ -61,13 +61,13 @@ Cuando el motor procesa un par de archivos con éxito (vía Gmail o Carga Local)
 Para que el flujo de extracción automática por correo funcione de manera óptima, se deben cumplir los siguientes requisitos en la cuenta de Gmail donde corre el script:
 
 ### 🏷️ Creación de Etiquetas Jerárquicas
-El script busca correos clasificados en etiquetas jerárquicas exactas de Gmail. Debe crear las siguientes etiquetas en su cuenta:
+El script busca correos clasificados en etiquetas jerárquicas exactas de Gmail. En la configuración activa, estas corresponden a:
 *   **Para Cancún:** `Facturas Municipales/Cancún`
 *   **Para Playa del Carmen:** `Facturas Municipales/Playa`
 *   **Para Tulum:** `Facturas Municipales/Tulum`
 
-> [!WARNING]
-> La ortografía, acentuación y el uso de mayúsculas y minúsculas deben coincidir exactamente con los textos anteriores, incluyendo la diagonal `/` que genera el subnivel en Gmail.
+> [!TIP]
+> **Autogestión de Etiquetas (v7.6):** Ya no necesitas crear estas etiquetas manualmente en Gmail. Al ejecutar la inicialización del ecosistema desde el Sheets (ver Sección 7), el script verificará tu cuenta de Gmail y creará automáticamente cualquier etiqueta jerárquica faltante con la ortografía exacta.
 
 ### 📧 Flujo del Correo y Requisitos de Entrada
 1.  **Estado No Leído:** El motor solo escanea correos marcados como **No Leídos** (`is:unread`) dentro de la etiqueta correspondiente para evitar reprocesar correos antiguos.
@@ -90,8 +90,8 @@ Deben existir pestañas específicas por cada municipio y una para control de in
 
 *Nota: Si las hojas no existen, al presionar "Forzar Reindexación de Hojas" desde la Consola, se crearán e inicializarán con su formato y colores correspondientes de manera automática.*
 
-### 📊 Estructura de 21 Columnas Estándar (v7.4)
-Cada pestaña de municipio debe poseer exactamente las siguientes 21 columnas en este orden estricto de izquierda a derecha (el script inicializa automáticamente esta cabecera con el estilo corporativo):
+### 📊 Estructura de 22 Columnas Estándar (v7.6)
+Cada pestaña de municipio debe poseer exactamente las siguientes 22 columnas en este orden estricto de izquierda a derecha (el script inicializa automáticamente esta cabecera con el estilo corporativo):
 
 | Columna | Nombre de Columna Oficial | Tipo de Dato Inyectado | Origen del Dato |
 | :---: | :--- | :--- | :--- |
@@ -116,6 +116,7 @@ Cada pestaña de municipio debe poseer exactamente las siguientes 21 columnas en
 | **Col 19**| `Nombre Archivo PDF` | Texto | Nombre definitivo asignado al PDF en Drive |
 | **Col 20**| `Enlace PDF` | Hipervínculo URL | Enlace directo para visualización del PDF en Drive |
 | **Col 21**| `Enlace XML` | Hipervínculo URL | Enlace directo para descarga del XML en Drive |
+| **Col 22**| `Hash XML` | Texto (SHA-256) | Hash del contenido XML para prevención de duplicados exactos |
 
 ---
 
@@ -164,9 +165,10 @@ Para poner en marcha el sistema por primera vez, siga esta secuencia de pasos:
     *   Al cargarse, aparecerá en el menú superior un nuevo botón: **`🏢 Consola CFDI`**.
     *   Haga clic en **`🎛️ Abrir Consola Central`**.
     *   **Paso Crítico:** Google solicitará una "Autorización Requerida". Haga clic en *Continuar*, elija su cuenta de Google, haga clic en *Configuración Avanzada* (abajo a la izquierda), seleccione *Ir a FactuMail (no seguro)* y haga clic en *Permitir*. Esto otorgará al script acceso controlado a sus propios recursos de Drive, Sheets y Gmail.
-2.  **Inicialización de Hojas:**
+2.  **Inicialización de Hojas y Etiquetas (v7.6):**
     *   Haga clic en **`🏢 Consola CFDI > ⚙️ Forzar Reindexación de Hojas`**.
     *   Este comando creará preventivamente las hojas de cálculo necesarias en blanco con el orden de columnas unificado, listas para recibir registros.
+    *   **Adicionalmente:** El sistema validará tus etiquetas de Gmail y creará automáticamente las subcarpetas del sistema (p. ej., `Facturas Municipales/...`) en caso de que falten en tu cuenta, evitando errores de ortografía.
 3.  **Procesamiento Contable Diario:**
     *   Abra la consola central (**`🏢 Consola CFDI > 🎛️ Abrir Consola Central`**).
     *   En el panel lateral derecho, podrá ejecutar la automatización completa haciendo clic en **"Procesar Todas las Facturas"** (barre todas las etiquetas de Gmail y el OCR de manera secuencial) o segmentarlo por un municipio en específico haciendo clic en su botón regional correspondiente.
@@ -226,6 +228,21 @@ El sistema detecta automáticamente el tipo de cuenta con la que se ejecuta y aj
 |---|---|---|---|
 | Gmail estándar (`@gmail.com`) | 6 minutos | 4.6 minutos | ~1.4 min |
 | Google Workspace Empresarial | **30 minutos** | **27 minutos** | ~3 min |
+
+---
+
+## 9. Seguridad, Concurrencia y Unidades Compartidas (v7.6)
+
+El sistema incluye mecanismos avanzados para operar con seguridad en entornos empresariales:
+
+### 🔒 Control de Concurrencia (Script Locking)
+Para evitar que ejecuciones simultáneas (dos usuarios diferentes abriendo la Consola o un Trigger coincidiendo con un proceso manual) inserten registros duplicados de las mismas facturas, el sistema implementa `LockService`. 
+*   Si una instancia está en ejecución, la segunda esperará hasta 30 segundos. Si el bloqueo continúa, la segunda ejecución se abortará con un aviso seguro sin duplicar datos ni archivos.
+
+### 🏢 Soporte nativo para Unidades Compartidas (Shared Drives)
+El sistema ha sido estructurado para anclarse a la **carpeta contenedora donde reside el archivo de Google Sheets activo**. 
+*   Esto significa que puedes mover la hoja contable y todo el ecosistema dentro de una **Unidad Compartida (Shared Drive)** de Google Workspace. Las carpetas cronológicas y logs se mantendrán dentro del espacio compartido corporativo y no en la carpeta personal de "Mi Unidad" del usuario que ejecute la acción.
+
 
 > [!IMPORTANT]
 > No se requiere ninguna configuración manual para cambiar estos umbrales. El sistema los detecta automáticamente al inicio de cada ejecución según el correo del usuario autenticado en la sesión de Apps Script.

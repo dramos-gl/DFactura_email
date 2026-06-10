@@ -1,8 +1,8 @@
-# Reporte de Arquitectura, Producto y Negocio: FactuMail v7.4
+# Reporte de Arquitectura, Producto y Negocio: FactuMail v7.6
 ## Análisis del Estado del Ecosistema de Facturación Municipal CFDI
 
-> **Versión del documento:** v7.4 — Actualizado: 22 Mayo 2026
-> **Estado general del sistema:** ✅ Estable y listo para producción
+> **Versión del documento:** v7.6 — Actualizado: Junio 2026
+> **Estado general del sistema:** ✅ Estable, robustecido contra concurrencia y listo para producción en Shared Drives
 
 ---
 
@@ -27,17 +27,19 @@ Automatizar de manera inteligente la extracción, validación fiscal, indexació
                                      [ Google Drive (Estructura Cronológica) ]
 ```
 
-### 📋 Reglas de Negocio Validadas y Activas (v7.4)
+### 📋 Reglas de Negocio Validadas y Activas (v7.6)
 * **Integridad del Par Fiscal (PDF + XML):** Cada transacción requiere obligatoriamente ambos archivos. La ausencia de uno de ellos se cataloga como *Estructura Corrupta*, aislando el caso en la pestaña `⚠️ Errores_Cola` sin detener el procesamiento general.
-* **Control Estricto de Duplicados:** Prevención de registros redundantes mediante el escaneo de IDs únicos (`Message-ID` de Gmail o prefijo `DRIVE_LOCAL_` autogenerado).
-* **Mecanismo de Conciliación Cuadrática:** Validación de montos totales entre el XML (verdad fiscal) y el PDF (leído vía OCR). Se tolera una variación máxima de **$0.05 MXN** por redondeos contables. Si se supera, se emite una alerta tiñendo la fila de color rojo/coral suave (`#FADBD8`) y se registra en `⚠️ Errores_Cola`.
+* **Control Estricto de Duplicados en Memoria:** Prevención de registros redundantes mediante el escaneo de IDs únicos (`Message-ID` de Gmail o prefijo `DRIVE_LOCAL_` autogenerado) utilizando búsquedas instantáneas en `Set` en memoria para alto rendimiento.
+* **Mecanismo de Conciliación Cuadrática:** Validación de montos totales entre el XML (verdad fiscal) y el PDF (leído vía OCR). Se tolera una variación máxima de **$0.05 MXN** por redondeos contables. Si se supera, se emite una alerta tiñendo la fila completa (22 columnas) de color rojo/coral suave (`#FADBD8`) y se registra en `⚠️ Errores_Cola`.
 * **Clasificación Cronológica Jerárquica:** Creación dinámica de un árbol de carpetas en Google Drive basado en la fecha de expedición del XML (Fallback a fecha del correo):
-  `Facturas CFDI / Descarga CFDI Recibidos / [Municipio] / [Año] / [Mes] /`
+  `Facturas CFDI / Descarga CFDI Recibidos / [Municipio] / [Año] / [Mes] / [Día] /`
 * **Renombrado Semántico Inteligente:** El nombre del archivo se estandariza bajo el patrón:
   `[3_letras_RFC_Emisor]_[PALABRA_CLAVE_CONCEPTO]_[FOLIO_SANITIZADO].[pdf/xml]`
   * *Ejemplo:* `MSO_PREDIAL_12345-A.pdf` (Normalizando RFCs como "MS0" a "MSO").
   * Las palabras clave se buscan prioritariamente en la descripción en un orden preestablecido (`CEDULA`, `AVALUO`, `CONSTANCIA`, `PREDIAL`, `FUSION`, `SUBDIVISION`, `DESLINDE`, `LICENCIA`).
 * **Lógica Híbrida de Origen de Correos:** Habilidad de aceptar facturas de cualquier remitente para un municipio (`["*"]`) o de limitar la recepción únicamente a una lista cerrada de correos corporativos autorizados.
+* **Prevención de Concurrencia (LockService):** Bloqueo seguro de exclusión mutua de 30 segundos para evitar duplicaciones en ejecuciones simultáneas.
+* **Soporte de Unidades Compartidas (Shared Drives):** Las carpetas se crean ancladas a la ubicación de la hoja contable, no en el drive personal del usuario.
 
 ---
 
@@ -60,33 +62,35 @@ El sistema elimina la tarea manual de descargar facturas del correo, renombrarla
 
 El software sigue una **arquitectura modular de alta cohesión y bajo acoplamiento** estructurada en 6 archivos en Google Apps Script (GAS):
 
-### 🔍 Diagnóstico de Módulos (v7.4)
+### 🔍 Diagnóstico de Módulos (v7.6)
 
 #### A. [0_Config.gs](file:///c:/Users/dramos/Documents/Proyecto_FactuMail/0_Config.gs) (Configuración Global)
-* **Función:** Define variables del sistema (`VERSION_SISTEMA`), nombres de carpetas raíz, matriz de configuración de municipios (`CONFIG_MUNICIPIOS`), encabezados oficiales de base de datos (`ENCABEZADOS_ESTANDAR`), catálogo del SAT de formas de pago e identificadores para renombrado semántico.
-* **Estado:** **Impecable.** Se añadió la propiedad `remitentesAprobados` a los municipios, se fijó la hoja destino de Tulum en `"Tulum"`, y se estandarizó la constante `ENCABEZADOS_ESTANDAR` a la estructura oficial de 21 columnas requerida por el motor de Drive.
+* **Función:** Define variables del sistema, carpetas raíz, matriz de configuración (`CONFIG_MUNICIPIOS`), encabezados (22 columnas, incluyendo `hashXml`), catálogo SAT de pagos y límites de tiempo.
+* **Estado:** **Impecable.** Actualizado a etiquetas `Facturas Municipales/` y 22 columnas.
 
 #### B. [1_CoreGmail.gs](file:///c:/Users/dramos/Documents/Proyecto_FactuMail/1_CoreGmail.gs) (Extractor Gmail + Control de Lotes)
-* **Función:** Expone las APIs para procesar de forma masiva (`apiProcesarTodo`) o segmentada (`apiProcesarMunicipio`) la bandeja de entrada. Realiza consultas usando queries nativas de Gmail (`label:X is:unread`), clasifica adjuntos (XML/PDF), audita duplicados e invoca al inyector del motor contable.
-* **Estado:** **Corregido, Optimizado y Blindado con Batching.**
-  * Se implementó lógica de construcción de query dinámica que evita fallos por variables indefinidas, soportando tanto el filtrado cerrado de remitentes como el escaneo general por etiqueta (`"*"`).
-  * Se agregaron variables globales `tiempoInicioGlobal` y `limiteTiempoCalculado` con evaluador `haExcedidoTiempo()` con caché para evitar llamadas repetidas a `Session` API.
-  * Los puntos de entrada `apiProcesarTodo()` y `apiProcesarMunicipio()` reinician el cronómetro en cada invocación desde la UI, detectan `limiteAlcanzado` propagado desde `procesarMunicipio()`, registran el evento `SUSPENSION_CONTROLADA_TIEMPO` en `⚠️ Errores_Cola` y retornan un mensaje diferenciado al frontend (⏱️ vs ✅).
+* **Función:** Expone APIs para procesar Gmail de forma masiva o segmentada.
+* **Estado:** **Corregido, Optimizado y Blindado.**
+  * Implementada exclusión mutua mediante `LockService` para evitar duplicados concurrentes.
+  * Implementado caché en memoria (`Set`) para validación de duplicados ultrarrápida.
 
 #### C. [2_CoreDrive.gs](file:///c:/Users/dramos/Documents/Proyecto_FactuMail/2_CoreDrive.gs) (Orquestador Central)
-* **Función:** Recibe los datos y blobs (de Gmail o Carga Local), detona los parsers, ejecuta la lógica de renombrado semántico, gestiona el árbol físico de carpetas en Google Drive e inserta el registro final en la base de datos de Sheets.
-* **Estado:** **Corregido y Estandarizado.** Se eliminó el array duplicado inline y se configuró para consumir directamente `ENCABEZADOS_ESTANDAR` de `0_Config.gs`, garantizando una única fuente de verdad columnar.
+* **Función:** Recibe datos y blobs, detona parsers, renombra archivos semánticamente, gestiona carpetas cronológicas (Año/Mes/Día) en Drive y escribe registros en Sheets.
+* **Estado:** **Corregido y Estandarizado.**
+  * Firma adaptada para recibir e inyectar el caché en memoria de IDs y hashes.
+  * Corregido bug visual de fila de discrepancia (ahora tiñe las 22 columnas).
+  * Modernizado el hoisting de variables de fecha a `let` de bloque.
 
 #### D. [3_ParserOCR.gs](file:///c:/Users/dramos/Documents/Proyecto_FactuMail/3_ParserOCR.gs) (Inteligencia Textual)
-* **Función:**
-  * **Parser XML:** Usa `XmlService` nativo para deconstruir el archivo fiscal de forma determinista y limpia la descripción de partidas contables eliminando códigos numéricos iniciales.
-  * **OCR Engine:** Desarrolla un método síncrono ultra-avanzado y elegante mediante la API v3 de Drive. Sube el PDF vía multipart POST con la propiedad `ocr=true` activada, lee el texto del Google Doc efímero resultante y ejecuta una higiénica recolección de basura eliminando el archivo temporal en el bloque `finally`.
-  * **Regex Engine:** Ejecuta búsquedas inversivas con patrones regex calibrados para capturar la Clave Catastral, Fecha Límite de Pago, Total e Información del Cliente del PDF.
-* **Estado:** **Excelente.** Código muy profesional y con alta tasa de éxito de OCR en comprobantes del sureste mexicano.
+* **Función:** Parser XML nativo y motor OCR síncrono vía Drive API v3.
+* **Estado:** **Estabilizado.** Añadido bucle de reintentos incrementales (`retry loop`) al abrir documentos temporales de OCR, mitigando fallos por latencia de Google.
 
 #### E. [UI.gs](file:///c:/Users/dramos/Documents/Proyecto_FactuMail/UI.gs) (Backend de Interfaz y Carga Local)
-* **Función:** Crea los menús de Google Sheets, abre el panel lateral y gestiona la rutina de Carga Local Manual, barriendo recursivamente archivos XML/PDF en la carpeta física, emparejándolos e inyectándolos en el mismo motor de base de datos.
-* **Estado:** **Estable.** Excelente puente que asegura que las facturas subidas manualmente a Drive sigan los mismos rigurosos estándares de renombrado y registro que las recibidas por correo.
+* **Función:** Crea menús de Google Sheets, abre el panel lateral y gestiona la rutina de Carga Local.
+* **Estado:** **Optimizado.**
+  * Añadido soporte para Unidades Compartidas (anclando carpetas al padre del Spreadsheet).
+  * Añadida autogestión de etiquetas de Gmail en `inicializarEcosistemaHojas` para crear etiquetas automáticamente.
+  * Precarga de caché de IDs y hashes por municipio en la carga local para descartar duplicados antes de ejecutar OCR.
 
 #### F. Sistema de Control de Lotes (Batching v7.4) — Transversal
 * **Función:** Mecanismo de resiliencia temporal que evita colisiones contra el límite nativo de ejecución de Apps Script.
