@@ -199,12 +199,12 @@ function procesarMunicipio(clave) {
   const messageIdsExistentes = new Set();
   const hashesExistentes = new Set();
   if (ultimaFilaInicial > 1) {
-    // Lectura de columna 2 (IDs Origen)
-    const ids = hojaDestino.getRange(2, 2, ultimaFilaInicial - 1, 1).getValues();
+    // Lectura de columna 16 (IDs Origen)
+    const ids = hojaDestino.getRange(2, 16, ultimaFilaInicial - 1, 1).getValues();
     ids.forEach(r => { if (r[0] !== undefined && r[0] !== null) messageIdsExistentes.add(r[0].toString().trim()); });
     
-    // Lectura de columna 22 (Hashes XML)
-    const hashes = hojaDestino.getRange(2, 22, ultimaFilaInicial - 1, 1).getValues();
+    // Lectura de columna 17 (Hashes XML)
+    const hashes = hojaDestino.getRange(2, 17, ultimaFilaInicial - 1, 1).getValues();
     hashes.forEach(r => { if (r[0] !== undefined && r[0] !== null) hashesExistentes.add(r[0].toString().trim()); });
   }
   
@@ -309,8 +309,8 @@ function procesarMunicipio(clave) {
  */
 function isMessageIdAlreadyLogged(sheet, messageId) {
   if (sheet.getLastRow() < 2) return false;
-  // Lee únicamente la columna 2 para proteger el consumo de memoria RAM
-  const idList = sheet.getRange(2, 2, sheet.getLastRow() - 1, 1).getValues();
+  // Lee únicamente la columna 16 para proteger el consumo de memoria RAM
+  const idList = sheet.getRange(2, 16, sheet.getLastRow() - 1, 1).getValues();
   return idList.some(row => row[0] === messageId);
 }
 

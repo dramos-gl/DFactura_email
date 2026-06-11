@@ -63,10 +63,10 @@ function apiOrganizarCarpetaDescargados() {
       const hashesSet = new Set();
       if (hoja && hoja.getLastRow() > 1) {
         const lastRow = hoja.getLastRow();
-        const ids = hoja.getRange(2, 2, lastRow - 1, 1).getValues();
+        const ids = hoja.getRange(2, 16, lastRow - 1, 1).getValues();
         ids.forEach(r => { if (r[0] !== undefined && r[0] !== null) idsSet.add(r[0].toString().trim()); });
         
-        const hashes = hoja.getRange(2, 22, lastRow - 1, 1).getValues();
+        const hashes = hoja.getRange(2, 17, lastRow - 1, 1).getValues();
         hashes.forEach(r => { if (r[0] !== undefined && r[0] !== null) hashesSet.add(r[0].toString().trim()); });
       }
       cachePorMunicipio[key] = { ids: idsSet, hashes: hashesSet };
@@ -233,6 +233,27 @@ function inicializarEcosistemaHojas() {
       hoja.getRange(1, 1, 1, ENCABEZADOS_ESTANDAR.length).setFontWeight("bold").setBackground("#EAEEF3");
     }
     
+    // Ocultar columnas técnicas 15, 16 y 17 (QA v8.12)
+    if (hoja.getMaxColumns() >= 17) {
+      hoja.hideColumns(15, 3);
+    }
+    
+    // Proteger columnas técnicas 15 a 17 contra edición accidental (QA v8.12)
+    try {
+      const protecciones = hoja.getProtections(SpreadsheetApp.ProtectionType.RANGE);
+      protecciones.forEach(p => {
+        if (p.getDescription() === "Protección de Columnas Técnicas") {
+          p.remove();
+        }
+      });
+      
+      const proteccion = hoja.protect().setDescription("Protección de Columnas Técnicas");
+      // Permitir editar solo las columnas visibles 1 a 14
+      proteccion.setUnprotectedRanges([hoja.getRange(1, 1, hoja.getMaxRows(), 14)]);
+    } catch (errProt) {
+      Logger.log("Aviso: No se pudo establecer protección: " + errProt.toString());
+    }
+    
     // Verificación y auto-creación automática de etiquetas en Gmail (QA v7.5)
     const labelNombre = CONFIG_MUNICIPIOS[clave].label;
     if (labelNombre) {
@@ -243,7 +264,7 @@ function inicializarEcosistemaHojas() {
     }
   });
   obtenerOCrearHojaEnSpreadsheet(ss, "⚠️ Errores_Cola");
-  SpreadsheetApp.getUi().alert("Ecosistema de pestañas contables verificado e inicializado correctamente.\n\nEtiquetas Gmail validadas y auto-creadas en caso de ausencia.");
+  SpreadsheetApp.getUi().alert("Ecosistema de pestañas contables verificado e inicializado correctamente.\n\nEtiquetas Gmail validadas y auto-creadas, y columnas de control ocultadas y protegidas.");
 }
 
 /**
@@ -279,7 +300,7 @@ function apiActualizarClavesCatastralesHistoricas() {
       if (lastRow < 2) continue;
       
       // Leer las columnas de la hoja contable
-      const datosRange = hoja.getRange(2, 1, lastRow - 1, 22);
+      const datosRange = hoja.getRange(2, 1, lastRow - 1, 17);
       const filas = datosRange.getValues();
       
       for (let i = 0; i < filas.length; i++) {
@@ -290,8 +311,8 @@ function apiActualizarClavesCatastralesHistoricas() {
         }
         
         const filaActual = filas[i];
-        let claveCatastral = filaActual[14]; // Col 15 (Clave Catastral)
-        const pdfUrl = filaActual[19];       // Col 20 (Enlace PDF)
+        let claveCatastral = filaActual[7]; // Col 8 (Clave Catastral)
+        const pdfUrl = filaActual[12];       // Col 13 (Enlace PDF)
         
         // Si el valor es N/A o vacío, iniciamos backfill
         if (!claveCatastral || claveCatastral.toString().trim().toUpperCase() === "N/A" || claveCatastral.toString().trim() === "") {
@@ -311,11 +332,11 @@ function apiActualizarClavesCatastralesHistoricas() {
             
             if (metaPdf.claveCatastral && metaPdf.claveCatastral !== "N/A") {
               // Clave encontrada con éxito
-              hoja.getRange(i + 2, 15).setValue(metaPdf.claveCatastral);
+              hoja.getRange(i + 2, 8).setValue(metaPdf.claveCatastral);
               actualizados++;
             } else {
               // Si el OCR fue exitoso pero no contiene clave válida, marcamos para no reprocesar
-              hoja.getRange(i + 2, 15).setValue("No Detectada");
+              hoja.getRange(i + 2, 8).setValue("No Detectada");
             }
           } catch (errOcr) {
             hojaErrores.appendRow([new Date(), "BACKFILL_OCR_ERROR", `Fila ${i + 2} (${config.hojaDestino})`, errOcr.toString()]);
@@ -375,19 +396,19 @@ function apiObtenerMetricasBackfill() {
     const lastRow = hoja.getLastRow();
     if (lastRow < 2) continue;
     
-    // Leer rango que contiene RFC Emisor (Col 5), Clave Catastral (Col 15), Fecha Límite (Col 17) y Referencia (Col 18)
-    const datosRange = hoja.getRange(2, 1, lastRow - 1, 18);
+    // Leer rango que contiene Fecha Emisión (Col 1), Clave Catastral (Col 8), Fecha Límite (Col 10) y Referencia (Col 11)
+    const datosRange = hoja.getRange(2, 1, lastRow - 1, 11);
     const filas = datosRange.getValues();
     
     for (let r = 0; r < filas.length; r++) {
       const fila = filas[r];
-      const rfc = fila[4];        // Col 5
-      const claveCat = fila[14];  // Col 15
-      const fechaLim = fila[16];  // Col 17
-      const refBanc = fila[17];   // Col 18
+      const fechaEmision = fila[0]; // Col 1
+      const claveCat = fila[7];     // Col 8
+      const fechaLim = fila[9];     // Col 10
+      const refBanc = fila[10];     // Col 11
       
-      // Si la fila no tiene RFC, se asume fila vacía de plantilla y se ignora
-      if (!rfc || rfc.toString().trim() === "") continue;
+      // Si la fila no tiene Fecha Emisión, se asume fila vacía de plantilla y se ignora
+      if (!fechaEmision || fechaEmision.toString().trim() === "") continue;
       
       const necClave = !claveCat || claveCat.toString().trim() === "" || claveCat.toString().trim().toUpperCase() === "N/A";
       const necFecha = !fechaLim || fechaLim.toString().trim() === "" || fechaLim.toString().trim().toUpperCase() === "N/A";
@@ -436,21 +457,21 @@ function apiProcesarLoteBackfill() {
       
       hojaTrabajada = config.hojaDestino; // Registra la hoja actual en proceso
       
-      const datosRange = hoja.getRange(2, 1, lastRow - 1, 22);
+      const datosRange = hoja.getRange(2, 1, lastRow - 1, 17);
       const filas = datosRange.getValues();
       
       for (let i = 0; i < filas.length; i++) {
         if (ocrRealizados >= MAX_BATCH_OCR) break;
         
         const filaActual = filas[i];
-        let claveCatastral = filaActual[14]; // Col 15 (Clave Catastral)
-        let fechaLim = filaActual[16];       // Col 17 (Fecha Límite Pago)
-        let refBanc = filaActual[17];        // Col 18 (Referencia Bancaria)
-        const pdfUrl = filaActual[19];       // Col 20 (Enlace PDF)
-        const rfcEmisor = filaActual[4];     // Col 5 (RFC Emisor)
+        let claveCatastral = filaActual[7];  // Col 8 (Clave Catastral)
+        let fechaLim = filaActual[9];        // Col 10 (Fecha Límite Pago)
+        let refBanc = filaActual[10];        // Col 11 (Referencia Bancaria)
+        const pdfUrl = filaActual[12];       // Col 13 (Enlace PDF)
+        const fechaEmision = filaActual[0];  // Col 1 (Fecha Emisión)
         
-        // Si no hay RFC Emisor, es una fila vacía y la ignoramos
-        if (!rfcEmisor || rfcEmisor.toString().trim() === "") continue;
+        // Si no hay Fecha Emisión, es una fila vacía y la ignoramos
+        if (!fechaEmision || fechaEmision.toString().trim() === "") continue;
         
         const necClave = !claveCatastral || claveCatastral.toString().trim() === "" || claveCatastral.toString().trim().toUpperCase() === "N/A";
         const necFecha = !fechaLim || fechaLim.toString().trim() === "" || fechaLim.toString().trim().toUpperCase() === "N/A";
@@ -459,9 +480,9 @@ function apiProcesarLoteBackfill() {
         if (necClave || necFecha || necRef) {
           const fileId = extraerIdDeUrlDrive(pdfUrl);
           if (!fileId) {
-            if (necClave) hoja.getRange(i + 2, 15).setValue("Enlace Inválido");
-            if (necFecha) hoja.getRange(i + 2, 17).setValue("Enlace Inválido");
-            if (necRef) hoja.getRange(i + 2, 18).setValue("Enlace Inválido");
+            if (necClave) hoja.getRange(i + 2, 8).setValue("Enlace Inválido");
+            if (necFecha) hoja.getRange(i + 2, 10).setValue("Enlace Inválido");
+            if (necRef) hoja.getRange(i + 2, 11).setValue("Enlace Inválido");
             continue;
           }
           
@@ -472,9 +493,9 @@ function apiProcesarLoteBackfill() {
             try {
               pdfFile = DriveApp.getFileById(fileId);
             } catch (errFile) {
-              if (necClave) hoja.getRange(i + 2, 15).setValue("Error Acceso PDF");
-              if (necFecha) hoja.getRange(i + 2, 17).setValue("Error Acceso PDF");
-              if (necRef) hoja.getRange(i + 2, 18).setValue("Error Acceso PDF");
+              if (necClave) hoja.getRange(i + 2, 8).setValue("Error Acceso PDF");
+              if (necFecha) hoja.getRange(i + 2, 10).setValue("Error Acceso PDF");
+              if (necRef) hoja.getRange(i + 2, 11).setValue("Error Acceso PDF");
               hojaErrores.appendRow([new Date(), "BACKFILL_FILE_ACCESS_ERROR", `Fila ${i + 2} (${config.hojaDestino})`, errFile.toString()]);
               continue;
             }
@@ -482,9 +503,9 @@ function apiProcesarLoteBackfill() {
             // 2. Intentar ejecutar el OCR
             const pdfTexto = extraerTextoDelPdfConOCR(pdfFile, hojaErrores);
             if (pdfTexto === null) {
-              if (necClave) hoja.getRange(i + 2, 15).setValue("Error Lectura PDF");
-              if (necFecha) hoja.getRange(i + 2, 17).setValue("Error Lectura PDF");
-              if (necRef) hoja.getRange(i + 2, 18).setValue("Error Lectura PDF");
+              if (necClave) hoja.getRange(i + 2, 8).setValue("Error Lectura PDF");
+              if (necFecha) hoja.getRange(i + 2, 10).setValue("Error Lectura PDF");
+              if (necRef) hoja.getRange(i + 2, 11).setValue("Error Lectura PDF");
               continue;
             }
             // 3. Analizar el texto
@@ -493,10 +514,10 @@ function apiProcesarLoteBackfill() {
             // Actualizar Clave Catastral
             if (necClave) {
               if (metaPdf.claveCatastral && metaPdf.claveCatastral !== "N/A") {
-                hoja.getRange(i + 2, 15).setValue(metaPdf.claveCatastral);
+                hoja.getRange(i + 2, 8).setValue(metaPdf.claveCatastral);
                 actualizados++;
               } else {
-                hoja.getRange(i + 2, 15).setValue("No Detectada");
+                hoja.getRange(i + 2, 8).setValue("No Detectada");
                 noDetectados++;
               }
             }
@@ -504,25 +525,25 @@ function apiProcesarLoteBackfill() {
             // Actualizar Fecha Límite Pago
             if (necFecha) {
               if (metaPdf.fechaLimitePago && metaPdf.fechaLimitePago !== "N/A") {
-                hoja.getRange(i + 2, 17).setValue(metaPdf.fechaLimitePago);
+                hoja.getRange(i + 2, 10).setValue(metaPdf.fechaLimitePago);
               } else {
-                hoja.getRange(i + 2, 17).setValue("No Detectada");
+                hoja.getRange(i + 2, 10).setValue("No Detectada");
               }
             }
             
             // Actualizar Referencia Bancaria
             if (necRef) {
               if (metaPdf.referenciaCliente && metaPdf.referenciaCliente !== "N/A") {
-                hoja.getRange(i + 2, 18).setValue(metaPdf.referenciaCliente);
+                hoja.getRange(i + 2, 11).setValue(metaPdf.referenciaCliente);
               } else {
-                hoja.getRange(i + 2, 18).setValue("No Detectada");
+                hoja.getRange(i + 2, 11).setValue("No Detectada");
               }
             }
             
           } catch (errOcr) {
-            if (necClave) hoja.getRange(i + 2, 15).setValue("Error Proceso");
-            if (necFecha) hoja.getRange(i + 2, 17).setValue("Error Proceso");
-            if (necRef) hoja.getRange(i + 2, 18).setValue("Error Proceso");
+            if (necClave) hoja.getRange(i + 2, 8).setValue("Error Proceso");
+            if (necFecha) hoja.getRange(i + 2, 10).setValue("Error Proceso");
+            if (necRef) hoja.getRange(i + 2, 11).setValue("Error Proceso");
             hojaErrores.appendRow([new Date(), "BACKFILL_OCR_ERROR", `Fila ${i + 2} (${config.hojaDestino})`, errOcr.toString()]);
           }
         }

@@ -1,7 +1,7 @@
 # 📖 Manual de Usuario y Configuración de Infraestructura
-## Sistema FactuMail v7.6 — Automatización Contable de Facturación Municipal CFDI
+## Sistema FactuMail v8.7 — Automatización Contable de Facturación Municipal CFDI
 
-> **Versión:** v7.6 · **Entorno objetivo:** Google Workspace Empresarial · **Actualizado:** Junio 2026
+> **Versión:** v8.7 · **Entorno objetivo:** Google Workspace Empresarial · **Actualizado:** Junio 2026
 
 Este manual describe todos los prerrequisitos, ubicaciones, nombres de directorios, configuraciones en Gmail, estructuras en Sheets y lineamientos de mantenimiento de código necesarios para asegurar el correcto funcionamiento del ecosistema automatizado de procesamiento CFDI **FactuMail**.
 
@@ -58,7 +58,7 @@ Cuando el motor procesa un par de archivos con éxito (vía Gmail o Carga Local)
 
 ## 4. Configuración en Gmail (Bandeja de Entrada & Etiquetas)
 
-Para que el flujo de extracción automática por correo funcione de manera óptima, se deben cumplir los siguientes requisitos en la cuenta de Gmail donde corre el script:
+To que el flujo de extracción automática por correo funcione de manera óptima, se deben cumplir los siguientes requisitos en la cuenta de Gmail donde corre el script:
 
 ### 🏷️ Creación de Etiquetas Jerárquicas
 El script busca correos clasificados en etiquetas jerárquicas exactas de Gmail. En la configuración activa, estas corresponden a:
@@ -67,7 +67,7 @@ El script busca correos clasificados en etiquetas jerárquicas exactas de Gmail.
 *   **Para Tulum:** `Facturas Municipales/Tulum`
 
 > [!TIP]
-> **Autogestión de Etiquetas (v7.6):** Ya no necesitas crear estas etiquetas manualmente en Gmail. Al ejecutar la inicialización del ecosistema desde el Sheets (ver Sección 7), el script verificará tu cuenta de Gmail y creará automáticamente cualquier etiqueta jerárquica faltante con la ortografía exacta.
+> **Autogestión de Etiquetas (v8.7):** Ya no necesitas crear estas etiquetas manualmente en Gmail. Al ejecutar la inicialización del ecosistema desde el Sheets (ver Sección 7), el script verificará tu cuenta de Gmail y creará automáticamente cualquier etiqueta jerárquica faltante con la ortografía exacta.
 
 ### 📧 Flujo del Correo y Requisitos de Entrada
 1.  **Estado No Leído:** El motor solo escanea correos marcados como **No Leídos** (`is:unread`) dentro de la etiqueta correspondiente para evitar reprocesar correos antiguos.
@@ -90,33 +90,55 @@ Deben existir pestañas específicas por cada municipio y una para control de in
 
 *Nota: Si las hojas no existen, al presionar "Forzar Reindexación de Hojas" desde la Consola, se crearán e inicializarán con su formato y colores correspondientes de manera automática.*
 
-### 📊 Estructura de 22 Columnas Estándar (v7.6)
-Cada pestaña de municipio debe poseer exactamente las siguientes 22 columnas en este orden estricto de izquierda a derecha (el script inicializa automáticamente esta cabecera con el estilo corporativo):
+### 📊 Estructura de 17 Columnas Estándar (v8.12)
+Cada pestaña de municipio debe poseer exactamente las siguientes 17 columnas en este orden estricto de izquierda a derecha (el script inicializa automáticamente esta cabecera con el estilo corporativo y oculta/protege las columnas 15, 16 y 17):
 
-| Columna | Nombre de Columna Oficial | Tipo de Dato Inyectado | Origen del Dato |
-| :---: | :--- | :--- | :--- |
-| **Col 1** | `Fecha Procesamiento` | Fecha y Hora | Sistema (Fecha actual de ejecución) |
-| **Col 2** | `ID Origen (Correo/Local)` | Texto (ID único) | Gmail (Message-ID) o Drive (DRIVE_LOCAL_ID) |
-| **Col 3** | `Fecha Emisión` | Texto (AAAA-MM-DD) | XML (Atributo `Fecha` del comprobante) |
-| **Col 4** | `Asunto / Contexto` | Texto | Gmail (Asunto del correo) o Contexto Local |
-| **Col 5** | `RFC Emisor` | Texto (12-13 caracteres) | XML (Nodo `<cfdi:Emisor Rfc="...">`) |
-| **Col 6** | `Nombre Emisor` | Texto | XML (Nodo `<cfdi:Emisor Nombre="...">`) |
-| **Col 7** | `RFC Receptor` | Texto (12-13 caracteres) | XML (Nodo `<cfdi:Receptor Rfc="...">`) |
-| **Col 8** | `Nombre Receptor` | Texto | XML (Nodo `<cfdi:Receptor Nombre="...">`) |
-| **Col 9** | `Serie-Folio` | Texto | XML (Atributos concatenados `Serie`-`Folio`) |
-| **Col 10**| `UUID Fiscal` | Texto (36 caracteres) | XML (UUID del Timbre Fiscal Digital) |
-| **Col 11**| `Forma de Pago` | Texto (Clave - Descripción) | XML (Homologado con Catálogo del SAT de `0_Config`) |
-| **Col 12**| `Método de Pago` | Texto | XML (Atributo `MetodoPago` del comprobante) |
-| **Col 13**| `Uso CFDI` | Texto | XML (Atributo `UsoCFDI` del receptor) |
-| **Col 14**| `Total Facturado` | Decimal | XML (Total fiscal con fallback a OCR de PDF) |
-| **Col 15**| `Clave Catastral` | Texto | PDF (Extraído vía OCR con anclas Regex) |
-| **Col 16**| `Descripción / Conceptos`| Texto (Partidas separadas por comas) | XML (Descripción purificada sin códigos basura) |
-| **Col 17**| `Fecha Límite Pago` | Texto o Fecha | PDF (Extraído de sección de vencimiento vía OCR) |
-| **Col 18**| `Referencia Bancaria` | Texto | PDF (Línea de captura o referencia bancaria de pago) |
-| **Col 19**| `Nombre Archivo PDF` | Texto | Nombre definitivo asignado al PDF en Drive |
-| **Col 20**| `Enlace PDF` | Hipervínculo URL | Enlace directo para visualización del PDF en Drive |
-| **Col 21**| `Enlace XML` | Hipervínculo URL | Enlace directo para descarga del XML en Drive |
-| **Col 22**| `Hash XML` | Texto (SHA-256) | Hash del contenido XML para prevención de duplicados exactos |
+| Columna | Nombre de Columna Oficial | Tipo de Dato Inyectado | Origen del Dato | Estado |
+| :---: | :--- | :--- | :--- | :--- |
+| **Col 1** | `Fecha Emisión` | Texto (AAAA-MM-DD) | XML (Atributo `Fecha`) | Visible |
+| **Col 2** | `Nombre Emisor` | Texto | XML (Nodo `<cfdi:Emisor Nombre="...">`) | Visible |
+| **Col 3** | `Nombre Receptor` | Texto | XML (Nodo `<cfdi:Receptor Nombre="...">`) | Visible |
+| **Col 4** | `Serie-Folio` | Texto | XML (Atributos concatenados `Serie`-`Folio`) | Visible |
+| **Col 5** | `UUID Fiscal` | Texto (36 caracteres) | XML (UUID del Timbre Fiscal) | Visible |
+| **Col 6** | `Forma de Pago` | Texto (Clave - Descripción) | XML (Homologado con Catálogo del SAT) | Visible |
+| **Col 7** | `Total Facturado` | Decimal | XML (Total fiscal con fallback a OCR) | Visible |
+| **Col 8** | `Clave Catastral` | Texto | PDF (Extraído vía OCR con validación estricta) | Visible |
+| **Col 9** | `Descripción / Conceptos`| Texto (Partidas separadas por comas) | XML (Descripción limpia sin códigos basura) | Visible |
+| **Col 10**| `Fecha Límite Pago` | Texto o Fecha | PDF (Extraído de sección de vencimiento vía OCR) | Visible |
+| **Col 11**| `Referencia Bancaria` | Texto | PDF (Línea de captura o recibo de pago relacionado) | Visible |
+| **Col 12**| `Nombre Archivo PDF` | Texto | Nombre definitivo asignado al PDF en Drive | Visible |
+| **Col 13**| `Enlace PDF` | Hipervínculo URL | Enlace directo para visualización en Drive | Visible |
+| **Col 14**| `Enlace XML` | Hipervínculo URL | Enlace directo para descarga en Drive | Visible |
+| **Col 15**| `Fecha Procesamiento` | Fecha y Hora | Sistema (Fecha actual de ejecución) | **Oculta/Protegida** |
+| **Col 16**| `ID Origen (Correo/Local)`| Texto (ID único) | Gmail (Message-ID) o Drive (DRIVE_LOCAL_ID) | **Oculta/Protegida** |
+| **Col 17**| `Hash XML` | Texto (SHA-256) | Hash SHA-256 para control de duplicidades | **Oculta/Protegida** |
+
+---
+
+### 🔑 Validación y Formatos de Claves Catastrales por Municipio
+
+Para garantizar que el motor OCR extraiga únicamente claves catastrales legítimas y descarte firmas digitales del SAT o folios fiscales no deseados, se aplican reglas de validación basadas en los formatos oficiales de cada municipio:
+
+#### 📍 Cancún (Benito Juárez)
+Soporta tres estructuras estrictas de longitud y carácter, excluyendo cualquier clave que comience con el dígito `0`:
+*   **18 dígitos numéricos exactos:**
+    *   *Regla:* 18 dígitos, 0 letras.
+    *   *Ejemplo:* `601300015001021578`
+*   **18 caracteres exactos (17 números y 1 letra):**
+    *   *Regla:* 17 dígitos, exactamente 1 letra.
+    *   *Ejemplo:* `601300C01500102157`
+*   **17 caracteres exactos (16 números y 1 letra):**
+    *   *Regla:* 16 dígitos, exactamente 1 letra.
+    *   *Ejemplo:* `60130C01500102157`
+
+#### 📍 Playa del Carmen (Solidaridad) y Tulum
+Soportan las siguientes estructuras estrictas, excluyendo letras y cualquier clave que comience con el dígito `0`:
+*   **Formato con Guion (16 a 19 caracteres totales):**
+    *   *Regla:* La sección base antes del guion debe tener exactamente **15 dígitos**. Admite un sufijo opcional de 1 a 3 dígitos después del guion.
+    *   *Ejemplo:* `801030076001001-8` o `801030076001001-123`
+*   **Formato sin Guion (15 dígitos exactos):**
+    *   *Regla:* Exactamente 15 dígitos numéricos sin caracteres adicionales.
+    *   *Ejemplo:* `801030076001001`
 
 ---
 
@@ -141,7 +163,7 @@ const CONFIG_MUNICIPIOS = {
 
 ### 🛠️ ¿Cómo Actualizar los Remitentes Aprobados?
 
-#### Opción A: Aceptar Cualquier Remitente (Por defecto en v7.4)
+#### Opción A: Aceptar Cualquier Remitente (Por defecto en v8.7)
 Si el negocio desea procesar todo correo que un colaborador mueva a la etiqueta de Gmail correspondiente sin importar quién lo envió:
 *   Declare el comodín de asterisco `"*"` como único elemento del array:
     `remitentesAprobados: ["*"]`
@@ -164,14 +186,18 @@ Para poner en marcha el sistema por primera vez, siga esta secuencia de pasos:
     *   Abra la Hoja de Cálculo en su navegador.
     *   Al cargarse, aparecerá en el menú superior un nuevo botón: **`🏢 Consola CFDI`**.
     *   Haga clic en **`🎛️ Abrir Consola Central`**.
-    *   **Paso Crítico:** Google solicitará una "Autorización Requerida". Haga clic en *Continuar*, elija su cuenta de Google, haga clic en *Configuración Avanzada* (abajo a la izquierda), seleccione *Ir a FactuMail (no seguro)* y haga clic en *Permitir*. Esto otorgará al script acceso controlado a sus propios recursos de Drive, Sheets y Gmail.
-2.  **Inicialización de Hojas y Etiquetas (v7.6):**
+    *   **Paso Crítico:** Google solicitará una "Autorización Requerida". Haga clic en *Continuar*, elija su cuenta de Google, haga clic en *Configuración Avanzada*, seleccione *Ir a FactuMail (no seguro)* y haga clic en *Permitir*.
+2.  **Inicialización de Hojas y Etiquetas (v8.7):**
     *   Haga clic en **`🏢 Consola CFDI > ⚙️ Forzar Reindexación de Hojas`**.
     *   Este comando creará preventivamente las hojas de cálculo necesarias en blanco con el orden de columnas unificado, listas para recibir registros.
     *   **Adicionalmente:** El sistema validará tus etiquetas de Gmail y creará automáticamente las subcarpetas del sistema (p. ej., `Facturas Municipales/...`) en caso de que falten en tu cuenta, evitando errores de ortografía.
 3.  **Procesamiento Contable Diario:**
     *   Abra la consola central (**`🏢 Consola CFDI > 🎛️ Abrir Consola Central`**).
-    *   En el panel lateral derecho, podrá ejecutar la automatización completa haciendo clic en **"Procesar Todas las Facturas"** (barre todas las etiquetas de Gmail y el OCR de manera secuencial) o segmentarlo por un municipio en específico haciendo clic en su botón regional correspondiente.
+    *   En el panel lateral derecho, podrá ejecutar la automatización completa haciendo clic en **"Procesar Todas las Facturas"** o segmentarlo por un municipio en específico haciendo clic en su botón regional correspondiente.
+4.  **Enriquecimiento Histórico Multi-Campo (Backfill):**
+    *   Si tienes facturas antiguas registradas que no posean **Clave Catastral**, **Fecha Límite Pago** o **Referencia Bancaria** (que tengan `"N/A"`, estén vacías o contengan `"No Detectada"` que quieras reevaluar), haz clic en el botón **"Actualizar Claves, Fechas y Refs"**.
+    *   El motor contará los registros pendientes y procesará lotes de 5 archivos recursivamente con una barra de progreso interactiva en tiempo real.
+    *   Si el archivo PDF no es legible o es inaccesible, el script marcará la celda con `"Error Acceso PDF"` o `"No Detectada"` para no quedarse atascado en futuras ejecuciones.
 
 ---
 

@@ -225,28 +225,23 @@ function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioC
     }
 
     const filaDatos = [
-      new Date(),                                   // Col 1: Fecha Procesamiento
-      messageId,                                    // Col 2: ID Origen
-      metaXml.fechaExpedicion,                      // Col 3: Fecha Emisión XML
-      asuntoOrigen,                                 // Col 4: Asunto
-      metaXml.rfcEmisor,                            // Col 5: RFC Emisor
-      metaXml.emisor,                               // Col 6: Nombre Emisor
-      metaXml.rfcReceptor,                          // Col 7: RFC Receptor
-      metaXml.receptor,                             // Col 8: Nombre Receptor
-      folioFinal,                                   // Col 9: Serie-Folio
-      metaXml.uuid,                                 // Col 10: UUID Fiscal
-      metaXml.formaPago,                            // Col 11: Forma de Pago
-      metaXml.metodoPago,                           // Col 12: Método de Pago
-      metaXml.usoCfdi,                              // Col 13: Uso CFDI
-      totalFinal,                                   // Col 14: Total Facturado
-      claveCatastralFinal,                          // Col 15: Clave Catastral
-      descripcionFinal,                             // Col 16: Descripción Limpia Concatenada
-      fechaLimiteFinal,                             // Col 17: Fecha Límite Pago (PDF)
-      referenciaFinal,                              // Col 18: Referencia Bancaria (PDF)
-      pdfGuardado.getName(),                        // Col 19: Nombre Archivo PDF
-      pdfGuardado.getUrl(),                         // Col 20: Enlace PDF
-      xmlGuardado.getUrl(),                         // Col 21: Enlace XML
-      hashXml                                       // Col 22: Hash XML para duplicados
+      metaXml.fechaExpedicion,                      // Col 1: Fecha Emisión XML
+      metaXml.emisor,                               // Col 2: Nombre Emisor
+      metaXml.receptor,                             // Col 3: Nombre Receptor
+      folioFinal,                                   // Col 4: Serie-Folio
+      metaXml.uuid,                                 // Col 5: UUID Fiscal
+      metaXml.formaPago,                            // Col 6: Forma de Pago
+      totalFinal,                                   // Col 7: Total Facturado
+      claveCatastralFinal,                          // Col 8: Clave Catastral
+      descripcionFinal,                             // Col 9: Descripción Limpia Concatenada
+      fechaLimiteFinal,                             // Col 10: Fecha Límite Pago (PDF)
+      referenciaFinal,                              // Col 11: Referencia Bancaria (PDF)
+      pdfGuardado.getName(),                        // Col 12: Nombre Archivo PDF
+      pdfGuardado.getUrl(),                         // Col 13: Enlace PDF
+      xmlGuardado.getUrl(),                         // Col 14: Enlace XML
+      new Date(),                                   // Col 15: Fecha Procesamiento (Oculta)
+      messageId,                                    // Col 16: ID Origen (Oculta)
+      hashXml                                       // Col 17: Hash XML (Oculta)
     ];
 
     hojaDestino.appendRow(filaDatos);

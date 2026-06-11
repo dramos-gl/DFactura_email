@@ -59,28 +59,23 @@ const CONFIG_MUNICIPIOS = {
  * El motor de Drive se sincronizará matemáticamente con este arreglo exacto.
  */
 const ENCABEZADOS_ESTANDAR = [
-  "Fecha Procesamiento",        // Col 1
-  "ID Origen (Correo/Local)",   // Col 2
-  "Fecha Emisión",              // Col 3
-  "Asunto / Contexto",          // Col 4
-  "RFC Emisor",                 // Col 5
-  "Nombre Emisor",              // Col 6
-  "RFC Receptor",               // Col 7
-  "Nombre Receptor",            // Col 8
-  "Serie-Folio",                // Col 9
-  "UUID Fiscal",                // Col 10
-  "Forma de Pago",              // Col 11
-  "Método de Pago",             // Col 12
-  "Uso CFDI",                   // Col 13
-  "Total Facturado",            // Col 14
-  "Clave Catastral",            // Col 15
-  "Descripción / Conceptos",    // Col 16
-  "Fecha Límite Pago",          // Col 17
-  "Referencia Bancaria",        // Col 18
-  "Nombre Archivo PDF",         // Col 19
-  "Enlace PDF",                 // Col 20
-  "Enlace XML",                 // Col 21
-  "Hash XML"                    // Col 22 - nuevo campo para detección de duplicados en Drive
+  "Fecha Emisión",              // Col 1
+  "Nombre Emisor",              // Col 2
+  "Nombre Receptor",            // Col 3
+  "Serie-Folio",                // Col 4
+  "UUID Fiscal",                // Col 5
+  "Forma de Pago",              // Col 6
+  "Total Facturado",            // Col 7
+  "Clave Catastral",            // Col 8
+  "Descripción / Conceptos",    // Col 9
+  "Fecha Límite Pago",          // Col 10
+  "Referencia Bancaria",        // Col 11
+  "Nombre Archivo PDF",         // Col 12
+  "Enlace PDF",                 // Col 13
+  "Enlace XML",                 // Col 14
+  "Fecha Procesamiento",        // Col 15
+  "ID Origen (Correo/Local)",   // Col 16
+  "Hash XML"                    // Col 17
 ];
 
 /**
@@ -177,10 +172,32 @@ function esClaveCatastralValida(clave) {
     // La base antes del guión debe tener exactamente 15 caracteres
     if (partes[0].length !== 15) return false;
     // El total incluyendo el guión debe ser de máximo 19 caracteres
-    return limpia.length >= 16 && limpia.length <= 19;
+    if (limpia.length < 16 || limpia.length > 19) return false;
+    // No debe contener letras
+    const tieneLetra = /[A-Z]/i.test(limpia);
+    return !tieneLetra;
   } else {
-    // Si no contiene guión, debe tener exactamente 15 caracteres (Playa/Tulum) o entre 17 y 18 caracteres (Cancún)
-    return limpia.length === 15 || (limpia.length >= 17 && limpia.length <= 18);
+    const digitosCount = (limpia.match(/\d/g) || []).length;
+    const letrasCount = (limpia.match(/[A-Z]/g) || []).length;
+    
+    // Formato 1: 15 dígitos exactos numéricos (Playa/Tulum sin guion)
+    if (limpia.length === 15) {
+      return digitosCount === 15 && letrasCount === 0;
+    }
+    
+    // Formato 2: 17 caracteres exactos para Cancún (16 números y 1 letra)
+    if (limpia.length === 17) {
+      return digitosCount === 16 && letrasCount === 1;
+    }
+    
+    // Formato 3: 18 caracteres exactos para Cancún (18 números, o 17 números y 1 letra)
+    if (limpia.length === 18) {
+      const esTodoNumerico = (digitosCount === 18 && letrasCount === 0);
+      const esAlfaNumerico = (digitosCount === 17 && letrasCount === 1);
+      return esTodoNumerico || esAlfaNumerico;
+    }
+    
+    return false;
   }
 }
 

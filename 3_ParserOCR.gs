@@ -201,34 +201,86 @@ function analizarTextoPdfInversivo(textoPdf, municipioClave = null) {
   const matchTotal = textoPdf.match(/(?:Total|Importe\s*Total|Neto\s*a\s*Pagar)\s*[:\$]?\s*([\d,]+\.\d{2})/i);
   if (matchTotal && matchTotal[1]) datos.total = matchTotal[1].replace(/,/g, '');
 
-    // 3. Extracción de la Clave Catastral del Inmueble (QA v8.6 - Soporte C.C Compacto, Caída Estructural y Sin Etiqueta)
-    const regexCatastral = /(?:Clave\s*Catastral|Reg\.\s*Catastral|C\.?\s*C\.?|Catastro|NÚMERO\s*CATASTRAL|Clave\s*Inmueble)\s*[:\-\.\s]*\s*([a-z0-9\-]{15,22}|[\d ]{15,25})/i;
-    const matchEtiqueta = textoPdf.match(regexCatastral);
+    // 3. Extracción de la Clave Catastral del Inmueble (QA v8.12 - Bucle de Validación de Candidatos para evitar falsos positivos)
     let posibleClave = null;
-    if (matchEtiqueta && matchEtiqueta[1]) {
-      // Remover espacios en blanco internos para unificar formatos (ej. "109 002..." -> "109002...")
-      posibleClave = matchEtiqueta[1].trim().replace(/\s+/g, '');
-    } else {
-      // Caída Estructural Segura (Para facturas sin etiqueta o con etiquetas no estándar)
-      // Cancún: exactamente 18 caracteres alfanuméricos que no inician con 0
-      const matchCancunRaw = textoPdf.match(/\b[1-9][A-Z0-9]{17}\b/i);
-      // Playa del Carmen / Tulum: 15 dígitos base que no inician con 0, con guión y sufijo opcional de 1-3 dígitos
-      const matchPlayaRaw = textoPdf.match(/\b[1-9]\d{14}(?:-\d{1,3})?\b/);
+    
+    // Intento 1: Buscar por etiquetas indicadoras (Clave Catastral, C.C., etc.)
+    const regexCatastral = /(?:Clave\s*Catastral|Reg\.\s*Catastral|C\.?\s*C\.?|Catastro|NÚMERO\s*CATASTRAL|Clave\s*Inmueble)\s*[:\-\.\s]*\s*([a-z0-9\-]{15,22}|[\d ]{15,25})/gi;
+    let matchEtiqueta;
+    while ((matchEtiqueta = regexCatastral.exec(textoPdf)) !== null) {
+      const candidate = matchEtiqueta[1].trim().replace(/\s+/g, '');
+      if (esClaveCatastralValida(candidate)) {
+        posibleClave = candidate;
+        break;
+      }
+    }
+    
+    // Intento 2: Caída Estructural Segura - Cancún (con escaneo de bloques alfanuméricos para tolerar fallas de espacios de OCR)
+    if (!posibleClave) {
+      let textoCancun = textoPdf;
+      const idxObs = textoPdf.toLowerCase().search(/observaci\u00f3n|observacion|observaciones/i);
+      if (idxObs !== -1) {
+        textoCancun = textoPdf.substring(idxObs);
+      }
       
-      if (matchCancunRaw) {
-        posibleClave = matchCancunRaw[0].trim();
-      } else if (matchPlayaRaw) {
-        posibleClave = matchPlayaRaw[0].trim();
-      } else {
-        // Expresión estructural para llaves catastrales con guiones obligatorios (ej. 001-002-003-001 o 109002005-03)
-        const matchEstructural = textoPdf.match(/\b(\d{3,}-\d{2,}-\d{2,}-\d{3,})\b/) || textoPdf.match(/\b(\d{9,}-\d{2,})\b/);
-        if (matchEstructural) {
-          posibleClave = matchEstructural[1].trim();
+      const blocks = textoCancun.match(/[A-Z0-9]+/gi) || textoPdf.match(/[A-Z0-9]+/gi);
+      if (blocks) {
+        for (let block of blocks) {
+          const cleanBlock = block.trim().toUpperCase();
+          
+          if (cleanBlock.length >= 17 && cleanBlock.length <= 18) {
+            if (esClaveCatastralValida(cleanBlock)) {
+              posibleClave = cleanBlock;
+              break;
+            }
+          } else if (cleanBlock.length > 18 && cleanBlock.length < 40) {
+            // Si el OCR unió números por falta de espacios, probar sub-cadenas de 17 y 18 caracteres
+            for (let len = 17; len <= 18; len++) {
+              for (let start = 0; start <= cleanBlock.length - len; start++) {
+                const subStr = cleanBlock.substring(start, start + len);
+                if (esClaveCatastralValida(subStr)) {
+                  posibleClave = subStr;
+                  break;
+                }
+              }
+              if (posibleClave) break;
+            }
+            if (posibleClave) break;
+          }
         }
       }
     }
-    // Validar la clave; si no pasa, devolver N/A
-    if (posibleClave && esClaveCatastralValida(posibleClave)) {
+    
+    // Intento 3: Caída Estructural Segura - Playa/Tulum (15 dígitos base que no inician con 0, con guión y sufijo opcional)
+    if (!posibleClave) {
+      const matchesPlaya = textoPdf.match(/\b[1-9]\d{14}(?:-\d{1,3})?\b/g);
+      if (matchesPlaya) {
+        for (let m of matchesPlaya) {
+          const candidate = m.trim().replace(/\s+/g, '');
+          if (esClaveCatastralValida(candidate)) {
+            posibleClave = candidate;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Intento 4: Expresión estructural general con guiones obligatorios
+    if (!posibleClave) {
+      const matchesEstructural = textoPdf.match(/\b(\d{3,}-\d{2,}-\d{2,}-\d{3,})\b/g) || textoPdf.match(/\b(\d{9,}-\d{2,})\b/g);
+      if (matchesEstructural) {
+        for (let m of matchesEstructural) {
+          const candidate = m.trim().replace(/\s+/g, '');
+          if (esClaveCatastralValida(candidate)) {
+            posibleClave = candidate;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Guardar el resultado validado
+    if (posibleClave) {
       datos.claveCatastral = posibleClave;
     } else {
       datos.claveCatastral = "N/A";
@@ -250,11 +302,15 @@ function analizarTextoPdfInversivo(textoPdf, municipioClave = null) {
       datos.referenciaCliente = matchRecibo[1].trim();
     }
   } else if (muniLimpio === "PLAYA" || muniLimpio === "TULUM") {
-    // Exclusivo Playa/Tulum: Buscar "Referencia del cliente", eliminar saltos de línea intermedios y descartar prefijo YYYYMMDD-
-    const textoSinSaltos = textoPdf.replace(/[\r\n]+/g, '');
-    const matchPlayaRef = textoSinSaltos.match(/(?:Referencia\s*del\s*cliente)\s*[:\-\.\s]*\s*(?:\d{8}-)?([A-Z0-9\-]+)/i);
-    if (matchPlayaRef && matchPlayaRef[1]) {
-      datos.referenciaCliente = matchPlayaRef[1].replace(/\s+/g, '').trim();
+    // Exclusivo Playa/Tulum: Buscar "Referencia del cliente" e ignorar saltos de línea/espacios intermedios
+    const idx = textoPdf.toLowerCase().indexOf("referencia del cliente");
+    if (idx !== -1) {
+      const sub = textoPdf.substring(idx + "referencia del cliente".length, idx + "referencia del cliente".length + 60);
+      const subLimpio = sub.replace(/[\s\r\n]+/g, '');
+      const matchPlayaRef = subLimpio.match(/^(?:[:\-\.\s]*)(?:\d{8}-)?([A-Z]+)-?(\d+)/i);
+      if (matchPlayaRef && matchPlayaRef[1] && matchPlayaRef[2]) {
+        datos.referenciaCliente = matchPlayaRef[1].toUpperCase() + "-" + matchPlayaRef[2];
+      }
     }
   }
   
