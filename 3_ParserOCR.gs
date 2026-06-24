@@ -13,10 +13,13 @@ function mapearMetadatosXml(xmlString) {
   let meta = {
     rfcEmisor: "N/A", emisor: "N/A", rfcReceptor: "N/A", receptor: "N/A",
     total: "N/A", fechaExpedicion: "N/A", formaPago: "N/A", metodoPago: "N/A",
-    usoCfdi: "N/A", folio: "N/A", uuid: "N/A", descripcionXml: "N/A"
+    usoCfdi: "N/A", folio: "N/A", uuid: "N/A", descripcionXml: "N/A",
+    padron: "N/A"
   };
   
   if (!xmlString) return meta;
+
+  meta.padron = extraerPadronDeTexto(xmlString);
 
   // Extracción rápida del UUID mediante RegEx por seguridad en la consistencia de datos
   const matchUuid = xmlString.match(/UUID="([A-Fa-f0-9-]{36})"/i);
@@ -190,7 +193,7 @@ function extraerTextoDelPdfConOCR(pdfAttachment, hojaErrores) {
  * @return {Object} Objeto con las extracciones mapeadas de forma individual.
  */
 function analizarTextoPdfInversivo(textoPdf, municipioClave = null) {
-  let datos = { folio: "N/A", total: "N/A", claveCatastral: "N/A", fechaLimitePago: "N/A", referenciaCliente: "N/A", descripcionPdf: "N/A" };
+  let datos = { folio: "N/A", total: "N/A", claveCatastral: "N/A", fechaLimitePago: "N/A", referenciaCliente: "N/A", descripcionPdf: "N/A", padron: "N/A" };
   if (!textoPdf) return datos;
 
   // 1. Extracción de Folio/Factura Comercial [cite: 28]
@@ -205,7 +208,7 @@ function analizarTextoPdfInversivo(textoPdf, municipioClave = null) {
     let posibleClave = null;
     
     // Intento 1: Buscar por etiquetas indicadoras (Clave Catastral, C.C., etc.)
-    const regexCatastral = /(?:Clave\s*Catastral|Reg\.\s*Catastral|C\.?\s*C\.?|Catastro|NÚMERO\s*CATASTRAL|Clave\s*Inmueble)\s*[:\-\.\s]*\s*([a-z0-9\-]{15,22}|[\d ]{15,25})/gi;
+    const regexCatastral = /(?:Clave\s*Catastral|Reg\.\s*Catastral|C\.?\s*C\.?|Catastro|NÚMERO\s*CATASTRAL|Clave\s*Inmueble)\s*[:\-\.\s]*\s*([a-zA-Z0-9\-]{15,22}|[0-9\-\s]{15,28})/gi;
     let matchEtiqueta;
     while ((matchEtiqueta = regexCatastral.exec(textoPdf)) !== null) {
       const candidate = matchEtiqueta[1].trim().replace(/\s+/g, '');
@@ -342,6 +345,12 @@ function analizarTextoPdfInversivo(textoPdf, municipioClave = null) {
                                                .trim()
                                                .toUpperCase();
     }
+  }
+
+  // Extracción exclusiva de Padrón para Cancún
+  const muniLimpioCan = municipioClave ? municipioClave.toString().toUpperCase().trim() : "";
+  if (muniLimpioCan === "CANCUN") {
+    datos.padron = extraerPadronDeTexto(textoPdf);
   }
 
   return datos;

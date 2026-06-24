@@ -33,6 +33,7 @@ function apiProcesarTodo() {
   // Reinicio del cronómetro global al inicio de cada ejecución completa
   tiempoInicioGlobal    = new Date().getTime();
   limiteTiempoCalculado = null; // Fuerza recalculación del límite dinámico
+  apiResetearCancelacion();
 
   try {
     const claves = Object.keys(CONFIG_MUNICIPIOS);
@@ -41,8 +42,8 @@ function apiProcesarTodo() {
     let municipioInterrumpido = null;
 
     for (let clave of claves) {
-      // Verificación de tiempo ANTES de iniciar cada municipio
-      if (haExcedidoTiempo()) {
+      // Verificación de tiempo y cancelación ANTES de iniciar cada municipio
+      if (haExcedidoTiempo() || checkCancellationFlag()) {
         suspensionControlada = true;
         municipioInterrumpido = clave;
         break;
@@ -121,6 +122,7 @@ function apiProcesarMunicipio(claveMunicipio) {
   // Reinicio del cronómetro global para ejecuciones individuales por municipio
   tiempoInicioGlobal    = new Date().getTime();
   limiteTiempoCalculado = null; // Fuerza recalculación del límite dinámico
+  apiResetearCancelacion();
 
   try {
     // Validación de cautela preventiva en el diccionario global
@@ -223,14 +225,14 @@ function procesarMunicipio(clave) {
   let contador = { correosBuscados: hilos.length, procesados: 0, omitidos: 0, limiteAlcanzado: false };
   
   for (let hilo of hilos) {
-    if (haExcedidoTiempo()) {
+    if (haExcedidoTiempo() || checkCancellationFlag()) {
       contador.limiteAlcanzado = true;
       break;
     }
     let mensajes = hilo.getMessages();
     
     for (let mensaje of mensajes) {
-      if (haExcedidoTiempo()) {
+      if (haExcedidoTiempo() || checkCancellationFlag()) {
         contador.limiteAlcanzado = true;
         break;
       }

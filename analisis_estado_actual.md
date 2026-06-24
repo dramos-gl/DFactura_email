@@ -1,8 +1,8 @@
-# Reporte de Arquitectura, Producto y Negocio: FactuMail v8.12
+# Reporte de Arquitectura, Producto y Negocio: FactuMail v9.1
 ## Análisis del Estado del Ecosistema de Facturación Municipal CFDI
 
-> **Versión del documento:** v8.12 — Actualizado: Junio 2026
-> **Estado general del sistema:** ✅ Estable, robustecido contra concurrencia y enriquecido con extractor multi-campo y Backfill interactivo
+> **Versión del documento:** v9.1 — Actualizado: Junio 2026
+> **Estado general del sistema:** ✅ Estable, robustecido contra concurrencia y enriquecido con extractor de triple capa de duplicados, Padrón (Cancún), prevención de notación científica y formateo preciso de celdas.
 
 ---
 
@@ -29,8 +29,8 @@ Automatizar de manera inteligente la extracción, validación fiscal, indexació
 
 ### 📋 Reglas de Negocio Validadas y Activas (v8.12)
 * **Integridad del Par Fiscal (PDF + XML):** Cada transacción requiere obligatoriamente ambos archivos. La ausencia de uno de ellos se cataloga como *Estructura Corrupta*, aislando el caso en la pestaña `⚠️ Errores_Cola` sin detener el procesamiento general.
-* **Control Estricto de Duplicados en Memoria:** Prevención de registros redundantes mediante el escaneo de IDs únicos (`Message-ID` de Gmail o prefijo `DRIVE_LOCAL_` autogenerado) utilizando búsquedas instantáneas en `Set` en memoria para alto rendimiento.
-* **Mecanismo de Conciliación Cuadrática:** Validación de montos totales entre el XML (verdad fiscal) y el PDF (leído vía OCR). Se tolera una variación máxima de **$0.05 MXN** por redondeos contables. Si se supera, se emite una alerta tiñendo la fila completa (17 columnas) de color rojo/coral suave (`#FADBD8`) y se registra en `⚠️ Errores_Cola`.
+* **Control Estricto de Duplicados Temprano (Triple Capa):** Prevención de registros redundantes mediante el escaneo y almacenamiento en caché de Sets de IDs únicos (`Message-ID` de Gmail o prefijo `DRIVE_LOCAL_`), hashes SHA-256 de XMLs y UUIDs fiscales (Col 5). Si se detecta un duplicado, se aborta la transacción antes de escribir archivos en Drive o procesar OCR, eliminando la creación de copias fantasmas `_(1)`, `_(2)`.
+* **Mecanismo de Conciliación Cuadrática:** Validación de montos totales entre el XML (verdad fiscal) y el PDF (leído vía OCR). Se tolera una variación máxima de **$0.05 MXN** por redondeos contables. Si se supera, se emite una alerta tiñendo únicamente la celda de la columna **Total Facturado** (Col 7) de color rojo/coral suave (`#FADBD8`) y se registra en `⚠️ Errores_Cola`.
 * **Clasificación Cronológica Jerárquica:** Creación dinámica de un árbol de carpetas en Google Drive basado en la fecha de expedición del XML (Fallback a fecha del correo):
   `Facturas CFDI / Descarga CFDI Recibidos / [Municipio] / [Año] / [Mes] / [Día] /`
 * **Reglas Específicas por Municipio para Extracción OCR:**
@@ -60,10 +60,12 @@ El sistema elimina la tarea manual de descargar facturas del correo, renombrarla
 ### 🎨 Experiencia de Usuario (UI/UX)
 * **Diseño Moderno y Premium:** La interfaz está construida con Vanilla CSS en un estilo de alta gama. Cuenta con un diseño adaptativo (*Responsive*) y soporte nativo de **Tema Claro y Tema Oscuro** que almacena la preferencia en `localStorage`.
 * **Micro-interacciones y Feedback Activo:**
-  * **GAS Control Centrado**: Título principal `"GAS Control"` centrado estéticamente en la barra superior.
+  * **Panel de Control Centrado**: Título principal `"Panel de Control"` centrado estéticamente en la barra superior en una sola línea.
+  * **Tooltips Interactivos**: Globos flotantes en los botones de mantenimiento con animaciones suaves de aparición y escala.
+  * **Diseño UI Optimizado**: El botón "Procesar Todas las Facturas" adopta el estilo de contorno azul y los botones ya no tienen subtítulos descriptivos redundantes, logrando una interfaz ultra limpia.
   * **Barra de Progreso Interactiva**: Un indicador dinámico visualiza el avance del enriquecimiento por lotes de 5 registros.
   * Modales sofisticados personalizados para confirmaciones importantes (ej. procesar históricos locales) y alertas del sistema.
-  * Indicadores de borde de color para asociar rápidamente cada botón con su municipio (*Cancún = Rosa/Rojo, Playa = Verde, Tulum = Cian*).
+  * Indicadores de borde de color para asociar rápidamente cada botón con su municipio (*Cancún = Rosa/Rojo, Playa = Verde, Tulum = Cian, Consolidado = Azul*).
 
 ---
 
@@ -100,11 +102,18 @@ El software sigue una **arquitectura modular de alta cohesión y bajo acoplamien
 
 ## 4. 📊 Resumen de Estado por Módulo
 
-| Módulo | Estado | Mejoras Aplicadas en v8.7 |
+| Módulo | Estado | Mejoras Aplicadas en v9.1 |
 |---|---|---|
-| `0_Config.gs` | ✅ Impecable | Función de validación de claves catastrales y configuración base. |
-| `1_CoreGmail.gs` | ✅ Blindado | Control de lotes de Gmail. |
-| `2_CoreDrive.gs` | ✅ Integrado | Escritura directa de Clave, Fecha Límite y Referencia en hoja. |
-| `3_ParserOCR.gs` | ✅ Optimizado | Regex alfanumérica refinada, soporte a saltos de línea y extractor split de referencia. |
-| `UI.gs` | ✅ Optimizado | Backfill interactivo unificado multi-campo (Claves/Fechas/Referencias). |
-| `Interfaz.html` | ✅ Premium | Título "GAS Control" centrado, barra de progreso interactiva para lote de 5 ítems. |
+| `0_Config.gs` | ✅ Impecable | Función de validación de claves catastrales, configuración base y actualización de versión a v9.1. |
+| `1_CoreGmail.gs` | ✅ Blindado | Control de lotes de Gmail, precarga de caché de duplicados de triple capa (UUID, Hash, IDs) y corrección de offsets para Cancún. |
+| `2_CoreDrive.gs` | ✅ Integrado | Inyección de Clave catastral forzada a texto (`'`), descarte de duplicados antes de crear archivos en Drive y coloreado de celda del Total Facturado. |
+| `3_ParserOCR.gs` | ✅ Optimizado | Regex alfanumérica refinada, soporte a saltos de línea, extractor de padrón para Cancún y regex catastral de Tulum robustecida para espacios internos. |
+| `UI.gs` | ✅ Optimizado | Backfill interactivo unificado, forzado a texto de claves catastrales, y ocultamiento preventivo de funciones de depuración (disponibles vía Apps Script o onOpen). |
+| `Interfaz.html` | ✅ Premium | Título "Panel de Control" en una sola línea, tooltips personalizados, colores azul grisáceo oscurecidos `#2a3233` / `#181d1e`, texto atenuado `#d2dadb` y botones optimizados. |
+
+---
+
+## 5. 📋 Backlog de Mejoras Pendientes
+
+*   **[PENDIENTE] Recomendación 1: Creación Automatizada de Triggers**:
+    *   *Objetivo*: Desarrollar una opción en el menú de Google Sheets (`🏢 Consola CFDI > ⏰ Programar Procesamiento Automático`) que instancie programáticamente los disparadores basados en tiempo en Apps Script. Esto evitará que el usuario deba realizar la programación técnica manual desde la consola de desarrollo de Google.

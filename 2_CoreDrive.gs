@@ -14,7 +14,7 @@
  * @param {string} asuntoOrigen - Asunto del correo o contexto de entrada.
  * @return {boolean} true si la transacción fue exitosa, false si requirió aislamiento de error.
  */
-function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioClave, messageId, fechaOrigen, asuntoOrigen, cacheMessageIds = null, cacheHashes = null) {
+function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioClave, messageId, fechaOrigen, asuntoOrigen, cacheMessageIds = null, cacheHashes = null, cacheUuids = null) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const hojaErrores = ss.getSheetByName("⚠️ Errores_Cola");
   
@@ -49,6 +49,69 @@ function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioC
     
     const metaXml = mapearMetadatosXml(xmlTextoCrudo);
 
+    // =================================================================
+    // VERIFICACIÓN PREVENTIVA DE DUPLICADOS (UUID Fiscal, Hash XML, Message-ID)
+    // =================================================================
+    const hashXml = obtenerHashXml(xmlTextoCrudo);
+    const uuidXml = (metaXml.uuid && metaXml.uuid !== "N/A") ? metaXml.uuid.toString().trim().toLowerCase() : "";
+    const colOffset = (municipioClave === "CANCUN") ? 1 : 0;
+
+    let esDuplicado = false;
+
+    // A. Verificar por Message-ID
+    if (cacheMessageIds && messageId) {
+      esDuplicado = cacheMessageIds.has(messageId.toString().trim());
+    } else if (hojaDestino.getLastRow() > 1) {
+      const idValues = hojaDestino.getRange(2, 16 + colOffset, hojaDestino.getLastRow() - 1, 1).getValues();
+      esDuplicado = idValues.some(row => row[0] && row[0].toString().trim() === messageId.toString().trim());
+    }
+
+    // B. Verificar por Hash XML
+    if (!esDuplicado) {
+      if (cacheHashes) {
+        esDuplicado = cacheHashes.has(hashXml);
+      } else if (hojaDestino.getLastRow() > 1) {
+        const hashValues = hojaDestino.getRange(2, 17 + colOffset, hojaDestino.getLastRow() - 1, 1).getValues();
+        esDuplicado = hashValues.some(row => row[0] === hashXml);
+      }
+    }
+
+    // C. Verificar por UUID Fiscal (Col 5)
+    if (!esDuplicado && uuidXml && uuidXml !== "n/a") {
+      if (cacheUuids) {
+        esDuplicado = cacheUuids.has(uuidXml);
+      } else if (hojaDestino.getLastRow() > 1) {
+        const uuidValues = hojaDestino.getRange(2, 5, hojaDestino.getLastRow() - 1, 1).getValues();
+        esDuplicado = uuidValues.some(row => row[0] && row[0].toString().trim().toLowerCase() === uuidXml);
+      }
+    }
+
+    if (esDuplicado) {
+      // Registrar en la hoja de errores
+      if (hojaErrores) {
+        hojaErrores.appendRow([
+          new Date(),
+          "DUPLICADO_IGNORADO",
+          asuntoOrigen,
+          `Factura duplicada detectada (UUID: ${uuidXml || "N/A"} | Hash: ${hashXml}). Se ignora el almacenamiento y registro.`
+        ]);
+      }
+      // Mover a la papelera los archivos origen si son objetos File de Drive (Carga Local)
+      try {
+        if (pdfAttachment && typeof pdfAttachment.setTrashed === 'function') {
+          pdfAttachment.setTrashed(true);
+        }
+        if (xmlAttachment && typeof xmlAttachment.setTrashed === 'function') {
+          xmlAttachment.setTrashed(true);
+        }
+      } catch (e) {
+        if (hojaErrores) {
+          hojaErrores.appendRow([new Date(), "TRASH_ERROR", asuntoOrigen, e.toString()]);
+        }
+      }
+      return true; // Considerado exitoso pero sin nueva inserción
+    }
+
     // 3. Ejecución del Canal Secundario: OCR e Inteligencia del PDF
     const pdfTextoCrudo = extraerTextoDelPdfConOCR(pdfAttachment, hojaErrores);
     const metaPdf = analizarTextoPdfInversivo(pdfTextoCrudo, municipioClave);
@@ -59,6 +122,7 @@ function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioC
     const claveCatastralFinal = (metaPdf.claveCatastral !== "N/A") ? metaPdf.claveCatastral : "N/A";
     const fechaLimiteFinal  = (metaPdf.fechaLimitePago !== "N/A") ? metaPdf.fechaLimitePago : "N/A";
     const referenciaFinal   = (metaPdf.referenciaCliente !== "N/A") ? metaPdf.referenciaCliente : "N/A";
+    const padronFinal       = (metaXml.padron !== "N/A") ? metaXml.padron : ((metaPdf.padron !== "N/A") ? metaPdf.padron : "N/A");
 
     // Estrategia Jerárquica para la Descripción (XML manda, PDF respalda)
     let descripcionFinal = "N/A";
@@ -179,49 +243,13 @@ function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioC
     // ESCRITURA TRANSACCIONAL EN LA BASE DE DATOS (SHEETS - 21 Columnas)
     // =================================================================
     
-    // Compute hash of XML content for duplicate detection
-    const hashXml = obtenerHashXml(xmlTextoCrudo);
+    // (Nota: HashXML y colOffset ya fueron calculados preventivamente en la validación temprana)
 
-    // Verificar si el hash ya existe en la hoja destino (columna 22) usando Set en memoria si está disponible (QA v7.5)
-    let esDuplicado = false;
-    if (cacheHashes) {
-      esDuplicado = cacheHashes.has(hashXml);
-    } else if (hojaDestino.getLastRow() > 1) {
-      const hashValues = hojaDestino.getRange(2, 22, hojaDestino.getLastRow() - 1, 1).getValues();
-      esDuplicado = hashValues.some(row => row[0] === hashXml);
-    }
-
-    if (esDuplicado) {
-      // Si ya existe, registramos en la hoja de errores y eliminamos archivos origen para evitar que queden desorganizados
-      if (hojaErrores) {
-        hojaErrores.appendRow([
-          new Date(),
-          "DUPLICADO_IGNORADO",
-          asuntoOrigen,
-          `Archivo XML con hash ${hashXml} ya procesado; se ignora la organización.`
-        ]);
-      }
-      // Mover a la papelera los archivos origen si son objetos File de Drive
-      try {
-        if (typeof pdfAttachment.setTrashed === 'function') {
-          pdfAttachment.setTrashed(true);
-        }
-        if (typeof xmlAttachment.setTrashed === 'function') {
-          xmlAttachment.setTrashed(true);
-        }
-      } catch (e) {
-        // Si falla, registrar error pero continuar
-        if (hojaErrores) {
-          hojaErrores.appendRow([new Date(), "TRASH_ERROR", asuntoOrigen, e.toString()]);
-        }
-      }
-      return true; // Considerado exitoso pero sin nueva inserción
-    }
-
-    // Inyección de cabeceras de control si la pestaña está vacía (v7.4: Estandarizado de 0_Config)
+    // Inyección de cabeceras de control si la pestaña está vacía
+    const encabezados = obtenerEncabezadosPorMunicipio(municipioClave);
     if (hojaDestino.getLastRow() === 0) {
-      hojaDestino.appendRow(ENCABEZADOS_ESTANDAR);
-      hojaDestino.getRange(1, 1, 1, ENCABEZADOS_ESTANDAR.length).setFontWeight("bold").setBackground("#EAEEF3");
+      hojaDestino.appendRow(encabezados);
+      hojaDestino.getRange(1, 1, 1, encabezados.length).setFontWeight("bold").setBackground("#EAEEF3");
     }
 
     const filaDatos = [
@@ -232,17 +260,24 @@ function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioC
       metaXml.uuid,                                 // Col 5: UUID Fiscal
       metaXml.formaPago,                            // Col 6: Forma de Pago
       totalFinal,                                   // Col 7: Total Facturado
-      claveCatastralFinal,                          // Col 8: Clave Catastral
+      (claveCatastralFinal !== "N/A" && claveCatastralFinal !== "") ? "'" + claveCatastralFinal : "N/A", // Col 8: Clave Catastral (Forzado a Texto)
       descripcionFinal,                             // Col 9: Descripción Limpia Concatenada
       fechaLimiteFinal,                             // Col 10: Fecha Límite Pago (PDF)
       referenciaFinal,                              // Col 11: Referencia Bancaria (PDF)
-      pdfGuardado.getName(),                        // Col 12: Nombre Archivo PDF
-      pdfGuardado.getUrl(),                         // Col 13: Enlace PDF
-      xmlGuardado.getUrl(),                         // Col 14: Enlace XML
-      new Date(),                                   // Col 15: Fecha Procesamiento (Oculta)
-      messageId,                                    // Col 16: ID Origen (Oculta)
-      hashXml                                       // Col 17: Hash XML (Oculta)
     ];
+
+    if (municipioClave === "CANCUN") {
+      filaDatos.push(padronFinal);                 // Col 12: Padrón (Cancún)
+    }
+
+    filaDatos.push(
+      pdfGuardado.getName(),                        // Nombre Archivo PDF
+      pdfGuardado.getUrl(),                         // Enlace PDF
+      xmlGuardado.getUrl(),                         // Enlace XML
+      new Date(),                                   // Fecha Procesamiento (Oculta)
+      messageId,                                    // ID Origen (Oculta)
+      hashXml                                       // Hash XML (Oculta)
+    );
 
     hojaDestino.appendRow(filaDatos);
     const ultimaFila = hojaDestino.getLastRow();
@@ -250,10 +285,13 @@ function inyectarArchivosAMotorContable(pdfAttachment, xmlAttachment, municipioC
     // Si la transacción fue exitosa, agregamos al caché en memoria para evitar duplicados en el mismo lote (QA v7.5)
     if (cacheHashes) cacheHashes.add(hashXml);
     if (cacheMessageIds) cacheMessageIds.add(messageId.toString().trim());
+    if (cacheUuids && uuidXml) cacheUuids.add(uuidXml);
 
-    // Formateo de seguridad visual en caso de discrepancia contable detectada (QA v7.5: Formatea las 22 columnas completas)
+    // Formateo de seguridad visual en caso de discrepancia contable detectada
     if (flagAlertaMonto) {
-      hojaDestino.getRange(ultimaFila, 1, 1, ENCABEZADOS_ESTANDAR.length).setBackground("#FADBD8"); // Alerta color rojo/coral suave
+      const colTotalIndex = encabezados.indexOf("Total Facturado") + 1;
+      const colAlerta = colTotalIndex > 0 ? colTotalIndex : 7;
+      hojaDestino.getRange(ultimaFila, colAlerta).setBackground("#FADBD8"); // Alerta color rojo/coral suave únicamente en la celda del Total
       if (hojaErrores) {
         hojaErrores.appendRow([new Date(), "ALERTA_MONTO", folioFinal, `Discrepancia detectada en fila ${ultimaFila} de ${config.hojaDestino}. XML: ${metaXml.total} vs PDF: ${metaPdf.total}`]);
       }

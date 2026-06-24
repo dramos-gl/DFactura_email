@@ -1,9 +1,9 @@
 # 📖 Manual de Usuario y Configuración de Infraestructura
-## Sistema FactuMail v8.7 — Automatización Contable de Facturación Municipal CFDI
+## Sistema FactuMail v9.1 — Automatización Contable de Facturación Municipal CFDI
 
-> **Versión:** v8.7 · **Entorno objetivo:** Google Workspace Empresarial · **Actualizado:** Junio 2026
+> **Versión:** v9.1 · **Entorno objetivo:** Google Workspace Empresarial · **Actualizado:** Junio 2026
 
-Este manual describe todos los prerrequisitos, ubicaciones, nombres de directorios, configuraciones en Gmail, estructuras en Sheets y lineamientos de mantenimiento de código necesarios para asegurar el correcto funcionamiento del ecosistema automatizado de procesamiento CFDI **FactuMail**.
+Este manual describe todos los prerrequisitos, ubicaciones, nombres de directorios, configuraciones en Gmail, estructuras en Sheets y lineamientos de mantenimiento de código necesarios para asegurar el correcto funcionamiento del ecosistema automatizado de procesamiento CFDI **FactuMail** y su **Panel de Control** integrado.
 
 ---
 
@@ -28,7 +28,7 @@ El sistema admite dos flujos de entrada:
     *   `2_CoreDrive.gs` (Orquestador de almacenamiento cronológico y base de datos)
     *   `3_ParserOCR.gs` (Mecanismo XML Service, Drive API OCR y Regex de PDF)
     *   `UI.gs` (Backend del panel lateral y carga local de Drive)
-    *   `Interfaz.html` (Frontend de la consola de control interactiva)
+    *   `Interfaz.html` (Frontend del panel de control interactivo)
 
 ---
 
@@ -62,12 +62,11 @@ To que el flujo de extracción automática por correo funcione de manera óptima
 
 ### 🏷️ Creación de Etiquetas Jerárquicas
 El script busca correos clasificados en etiquetas jerárquicas exactas de Gmail. En la configuración activa, estas corresponden a:
-*   **Para Cancún:** `Facturas Municipales/Cancún`
-*   **Para Playa del Carmen:** `Facturas Municipales/Playa`
-*   **Para Tulum:** `Facturas Municipales/Tulum`
+*   **Para Cancún:** `Facturas Municipios/Cancún`
+*   **Para Playa del Carmen:** `Facturas Municipios/Playa`
+*   **Para Tulum:** `Facturas Municipios/Tulum`
 
-> [!TIP]
-> **Autogestión de Etiquetas (v8.7):** Ya no necesitas crear estas etiquetas manualmente en Gmail. Al ejecutar la inicialización del ecosistema desde el Sheets (ver Sección 7), el script verificará tu cuenta de Gmail y creará automáticamente cualquier etiqueta jerárquica faltante con la ortografía exacta.
+**CONSEJO (Autogestión de Etiquetas v9.0):** Ya no necesitas crear estas etiquetas manualmente en Gmail. Al ejecutar la inicialización del ecosistema desde el Sheets (ver Sección 7), el script verificará tu cuenta de Gmail y creará automáticamente cualquier etiqueta jerárquica faltante con la ortografía exacta.
 
 ### 📧 Flujo del Correo y Requisitos de Entrada
 1.  **Estado No Leído:** El motor solo escanea correos marcados como **No Leídos** (`is:unread`) dentro de la etiqueta correspondiente para evitar reprocesar correos antiguos.
@@ -88,10 +87,13 @@ Deben existir pestañas específicas por cada municipio y una para control de in
 *   **`Tulum`**: Para registros de Tulum.
 *   **`⚠️ Errores_Cola`**: Pestaña técnica para registro de logs de auditoría contable y fallos (ej. montos discrepantes, archivos huérfanos, fallas de OCR).
 
-*Nota: Si las hojas no existen, al presionar "Forzar Reindexación de Hojas" desde la Consola, se crearán e inicializarán con su formato y colores correspondientes de manera automática.*
+*Nota: Si las hojas no existen, al presionar "Forzar Reindexación de Hojas" desde el menú de la hoja de cálculo, se crearán e inicializarán con su formato y colores correspondientes de manera automática.*
 
-### 📊 Estructura de 17 Columnas Estándar (v8.12)
-Cada pestaña de municipio debe poseer exactamente las siguientes 17 columnas en este orden estricto de izquierda a derecha (el script inicializa automáticamente esta cabecera con el estilo corporativo y oculta/protege las columnas 15, 16 y 17):
+### 📊 Estructura de la Base de Datos (v9.0)
+El libro de cálculo maneja dos layouts dinámicos según el municipio seleccionado para optimizar la recolección de metadatos catastrales:
+
+#### 📍 Pestañas Playa y Tulum (17 Columnas Estándar)
+Cada pestaña posee exactamente las siguientes 17 columnas en este orden estricto de izquierda a derecha (las últimas 3 columnas técnicas se ocultan y protegen automáticamente):
 
 | Columna | Nombre de Columna Oficial | Tipo de Dato Inyectado | Origen del Dato | Estado |
 | :---: | :--- | :--- | :--- | :--- |
@@ -113,29 +115,42 @@ Cada pestaña de municipio debe poseer exactamente las siguientes 17 columnas en
 | **Col 16**| `ID Origen (Correo/Local)`| Texto (ID único) | Gmail (Message-ID) o Drive (DRIVE_LOCAL_ID) | **Oculta/Protegida** |
 | **Col 17**| `Hash XML` | Texto (SHA-256) | Hash SHA-256 para control de duplicidades | **Oculta/Protegida** |
 
+#### 📍 Pestaña Cancún (18 Columnas - Padrón Exclusivo)
+La hoja de Cancún integra una columna adicional para almacenar el número de padrón municipal. Las últimas 3 columnas técnicas se desplazan una posición a la derecha (Cols 16 a 18) y se ocultan/protegen de forma automática:
+
+| Columna | Nombre de Columna Oficial | Tipo de Dato Inyectado | Origen del Dato | Estado |
+| :---: | :--- | :--- | :--- | :--- |
+| **Col 1** a **Col 11** | *Misma estructura estándar que Playa/Tulum* | | | Visible |
+| **Col 12**| `Padrón` | Texto / Número | XML/PDF (Prefijo `'Padron '` o `'Padrón '`) | Visible |
+| **Col 13**| `Nombre Archivo PDF` | Texto | Nombre definitivo asignado al PDF en Drive | Visible |
+| **Col 14**| `Enlace PDF` | Hipervínculo URL | Enlace directo para visualización en Drive | Visible |
+| **Col 15**| `Enlace XML` | Hipervínculo URL | Enlace directo para descarga en Drive | Visible |
+| **Col 16**| `Fecha Procesamiento` | Fecha y Hora | Sistema (Fecha actual de ejecución) | **Oculta/Protegida** |
+| **Col 17**| `ID Origen (Correo/Local)`| Texto (ID único) | Gmail (Message-ID) o Drive (DRIVE_LOCAL_ID) | **Oculta/Protegida** |
+| **Col 18**| `Hash XML` | Texto (SHA-256) | Hash SHA-256 para control de duplicidades | **Oculta/Protegida** |
+
 ---
 
-### 🔑 Validación y Formatos de Claves Catastrales por Municipio
+### 🔑 Validación y Formatos de Datos Catastrales por Municipio
 
-Para garantizar que el motor OCR extraiga únicamente claves catastrales legítimas y descarte firmas digitales del SAT o folios fiscales no deseados, se aplican reglas de validación basadas en los formatos oficiales de cada municipio:
+Para garantizar la precisión de la información almacenada y evitar interferencias con firmas del SAT o folios del sistema, se aplican reglas de negocio estrictas:
 
-#### 📍 Cancún (Benito Juárez)
-Soporta tres estructuras estrictas de longitud y carácter, excluyendo cualquier clave que comience con el dígito `0`:
-*   **18 dígitos numéricos exactos:**
-    *   *Regla:* 18 dígitos, 0 letras.
-    *   *Ejemplo:* `601300015001021578`
-*   **18 caracteres exactos (17 números y 1 letra):**
-    *   *Regla:* 17 dígitos, exactamente 1 letra.
-    *   *Ejemplo:* `601300C01500102157`
-*   **17 caracteres exactos (16 números y 1 letra):**
-    *   *Regla:* 16 dígitos, exactamente 1 letra.
-    *   *Ejemplo:* `60130C01500102157`
+#### 📍 Cancún (Benito Juárez) - Clave Catastral y Padrón
+*   **Padrón Municipal (Col 12)**:
+    *   *Regla:* Extrae la sección numérica que sigue al prefijo `'Padron '` o `'Padrón '` (soportando opcionalmente espacios y dos puntos como divisor, p. ej. `Padrón: 471303`).
+    *   *Ejemplo:* `471303` o `12345`
+*   **Clave Catastral (Col 8)**:
+    *   Soporta tres estructuras estrictas de longitud y carácter, excluyendo cualquier clave que comience con el dígito `0`:
+        *   **18 dígitos numéricos exactos:** Ej. `601300015001021578`
+        *   **18 caracteres exactos (17 números y 1 letra):** Ej. `601300C01500102157`
+        *   **17 caracteres exactos (16 números y 1 letra):** Ej. `60130C01500102157`
 
-#### 📍 Playa del Carmen (Solidaridad) y Tulum
+#### 📍 Playa del Carmen (Solidaridad) y Tulum - Clave Catastral
 Soportan las siguientes estructuras estrictas, excluyendo letras y cualquier clave que comience con el dígito `0`:
 *   **Formato con Guion (16 a 19 caracteres totales):**
     *   *Regla:* La sección base antes del guion debe tener exactamente **15 dígitos**. Admite un sufijo opcional de 1 a 3 dígitos después del guion.
-    *   *Ejemplo:* `801030076001001-8` o `801030076001001-123`
+    *   *Soporte de Espacios:* El sistema soporta claves catastrales con espacios internos intermedios (ej. `903 010 006 001 003-160`). Estos espacios se limpian automáticamente durante el procesamiento para conservar el formato unificado y su sufijo completo.
+    *   *Ejemplo:* `801030076001001-8` o `903010006001003-160`
 *   **Formato sin Guion (15 dígitos exactos):**
     *   *Regla:* Exactamente 15 dígitos numéricos sin caracteres adicionales.
     *   *Ejemplo:* `801030076001001`
@@ -147,12 +162,12 @@ Soportan las siguientes estructuras estrictas, excluyendo letras y cualquier cla
 La versión 7.4 introduce una **arquitectura híbrida condicional** de búsqueda de correos. Esto permite alternar dinámicamente entre recibir facturas de cualquier origen o limitarse a remitentes confiables.
 
 ### ⚙️ Ubicación en el Código
-Esta configuración se modifica directamente en el archivo [0_Config.gs](file:///c:/Users/dramos/Documents/Proyecto_FactuMail/0_Config.gs), dentro de la constante `CONFIG_MUNICIPIOS`.
+Esta configuración se modifica directamente en el archivo **0_Config.gs**, dentro de la constante `CONFIG_MUNICIPIOS`.
 
 ```javascript
 const CONFIG_MUNICIPIOS = {
   "CANCUN": {
-    label: "Facturas Municipales/Cancún",
+    label: "Facturas Municipios/Cancún",
     hojaDestino: "Cancún",
     nombreCarpeta: "Cancún",
     remitentesAprobados: ["*"] // <--- Propiedad de Control
@@ -173,8 +188,7 @@ Si desea que el script solo extraiga facturas de correos institucionales de teso
 *   Reemplace el asterisco por la lista de correos válidos encerrados entre comillas y separados por comas:
     `remitentesAprobados: ["tesoreria@cancun.gob.mx", "facturacion.municipio@playa.gob.mx", "notificaciones@tulum.gob.mx"]`
 
-> [!NOTE]
-> Al configurar la Opción B, el motor de Apps Script reconstruirá automáticamente la consulta de Gmail para buscar solo correos que cumplan con la etiqueta **Y** provengan de alguno de los remitentes de la lista, optimizando el consumo de cuotas diarias de búsqueda de Google.
+**NOTA:** Al configurar la Opción B, el motor de Apps Script reconstruirá automáticamente la consulta de Gmail para buscar solo correos que cumplan con la etiqueta **Y** provengan de alguno de los remitentes de la lista, optimizando el consumo de cuotas diarias de búsqueda de Google.
 
 ---
 
@@ -182,20 +196,21 @@ Si desea que el script solo extraiga facturas de correos institucionales de teso
 
 Para poner en marcha el sistema por primera vez, siga esta secuencia de pasos:
 
-1.  **Abrir Consola y Autorizar Permisos:**
+1.  **Abrir Panel de Control y Autorizar Permisos:**
     *   Abra la Hoja de Cálculo en su navegador.
     *   Al cargarse, aparecerá en el menú superior un nuevo botón: **`🏢 Consola CFDI`**.
-    *   Haga clic en **`🎛️ Abrir Consola Central`**.
+    *   Haga clic en **`🎛️ Abrir Consola Central`** para desplegar el **Panel de Control** lateral.
     *   **Paso Crítico:** Google solicitará una "Autorización Requerida". Haga clic en *Continuar*, elija su cuenta de Google, haga clic en *Configuración Avanzada*, seleccione *Ir a FactuMail (no seguro)* y haga clic en *Permitir*.
-2.  **Inicialización de Hojas y Etiquetas (v8.7):**
+2.  **Inicialización de Hojas y Etiquetas (v9.0):**
     *   Haga clic en **`🏢 Consola CFDI > ⚙️ Forzar Reindexación de Hojas`**.
     *   Este comando creará preventivamente las hojas de cálculo necesarias en blanco con el orden de columnas unificado, listas para recibir registros.
-    *   **Adicionalmente:** El sistema validará tus etiquetas de Gmail y creará automáticamente las subcarpetas del sistema (p. ej., `Facturas Municipales/...`) en caso de que falten en tu cuenta, evitando errores de ortografía.
+    *   **Adicionalmente:** El sistema validará tus etiquetas de Gmail y creará automáticamente las subcarpetas del sistema (p. ej., `Facturas Municipios/...`) en caso de que falten en tu cuenta, evitando errores de ortografía.
 3.  **Procesamiento Contable Diario:**
-    *   Abra la consola central (**`🏢 Consola CFDI > 🎛️ Abrir Consola Central`**).
-    *   En el panel lateral derecho, podrá ejecutar la automatización completa haciendo clic en **"Procesar Todas las Facturas"** o segmentarlo por un municipio en específico haciendo clic en su botón regional correspondiente.
-4.  **Enriquecimiento Histórico Multi-Campo (Backfill):**
-    *   Si tienes facturas antiguas registradas que no posean **Clave Catastral**, **Fecha Límite Pago** o **Referencia Bancaria** (que tengan `"N/A"`, estén vacías o contengan `"No Detectada"` que quieras reevaluar), haz clic en el botón **"Actualizar Claves, Fechas y Refs"**.
+    *   Abra el panel lateral (**`🏢 Consola CFDI > 🎛️ Abrir Consola Central`**).
+    *   En el panel lateral derecho, podrá ejecutar la automatización completa haciendo clic en **"Procesar Todas las Facturas"** (diseño en azul corporativo) o segmentarla por un municipio en específico haciendo clic en su botón regional correspondiente.
+4.  **Enriquecimiento Histórico Multi-Campo (Backfill) y Mantenimiento:**
+    *   Si tienes facturas antiguas registradas que no posean **Clave Catastral**, **Fecha Límite Pago** o **Referencia Bancaria** (que tengan `"N/A"`, estén vacías o contengan `"No Detectada"` que quieras reevaluar), haz clic en el botón **"Actualizar CC, Padrón.."** (con tooltip *"Fecha limite de pago, referencia bancaria"*).
+    *   Para organizar archivos locales subidos a Drive, presiona **"Organizar Facturas Históricas"** (con tooltip *"Facturas descargadas de todos los municipios"*).
     *   El motor contará los registros pendientes y procesará lotes de 5 archivos recursivamente con una barra de progreso interactiva en tiempo real.
     *   Si el archivo PDF no es legible o es inaccesible, el script marcará la celda con `"Error Acceso PDF"` o `"No Detectada"` para no quedarse atascado en futuras ejecuciones.
 
@@ -243,8 +258,7 @@ Cada vez que ocurre una suspensión controlada, el sistema registra automáticam
 | Municipio Afectado | `TULUM` (el municipio donde se interrumpió) |
 | Descripción | `El procesamiento fue interrumpido de forma controlada al alcanzar el umbral de seguridad (27 min). Los correos no procesados permanecen sin leer y serán retomados en la siguiente ejecución.` |
 
-> [!NOTE]
-> El evento `SUSPENSION_CONTROLADA_TIEMPO` **no indica una falla**. Es un registro de auditoría informativo. Solo requiere atención si aparece repetidamente para el mismo municipio con cero facturas procesadas, lo que podría indicar que una sola factura está tardando demasiado en procesarse (posible problema de OCR o conectividad).
+**NOTA:** El evento `SUSPENSION_CONTROLADA_TIEMPO` **no indica una falla**. Es un registro de auditoría informativo. Solo requiere atención si aparece repetidamente para el mismo municipio con cero facturas procesadas, lo que podría indicar que una sola factura está tardando demasiado en procesarse (posible problema de OCR o conectividad).
 
 ### ⚙️ Umbrales de Tiempo por Tipo de Licencia
 
@@ -257,9 +271,17 @@ El sistema detecta automáticamente el tipo de cuenta con la que se ejecuta y aj
 
 ---
 
-## 9. Seguridad, Concurrencia y Unidades Compartidas (v7.6)
+## 9. Seguridad, Concurrencia e Integridad de Datos (v9.1)
 
 El sistema incluye mecanismos avanzados para operar con seguridad en entornos empresariales:
+
+### 🔒 Prevención de Duplicados Temprana (Early Duplication Check)
+El sistema ejecuta un análisis preventivo de duplicados de triple capa (Message-ID, Hash XML y UUID Fiscal de la Columna 5) al inicio de cada transacción. 
+*   **Ahorro de recursos**: La verificación ocurre antes de crear cualquier archivo o carpeta en Drive y antes de ejecutar el OCR en el PDF. Si la factura es un duplicado, se descarta inmediatamente, evitando la creación de copias fantasmas con nombres redundantes como `_(1)` o `_(2)` en Google Drive.
+*   **Limpieza de origen**: En el caso de la carga local de Drive, los archivos duplicados son enviados de forma automatizada a la papelera (`setTrashed(true)`) para mantener despejada la carpeta de entrada.
+
+### 🛡️ Preservación de Formato Textual (Clave Catastral)
+Para evitar que Google Sheets auto-formatee las claves catastrales numéricas largas de 18 dígitos de Cancún a notación científica (`6.01626E+17`) y cause una pérdida irreversible de dígitos debido a la precisión de punto flotante de 15 dígitos significativos de Sheets, el sistema antepone un apóstrofe (`'`) al valor al escribirlo. Esto fuerza a Sheets a almacenar y mostrar el valor de forma literal como texto sin alterar sus dígitos de origen.
 
 ### 🔒 Control de Concurrencia (Script Locking)
 Para evitar que ejecuciones simultáneas (dos usuarios diferentes abriendo la Consola o un Trigger coincidiendo con un proceso manual) inserten registros duplicados de las mismas facturas, el sistema implementa `LockService`. 
@@ -269,6 +291,51 @@ Para evitar que ejecuciones simultáneas (dos usuarios diferentes abriendo la Co
 El sistema ha sido estructurado para anclarse a la **carpeta contenedora donde reside el archivo de Google Sheets activo**. 
 *   Esto significa que puedes mover la hoja contable y todo el ecosistema dentro de una **Unidad Compartida (Shared Drive)** de Google Workspace. Las carpetas cronológicas y logs se mantendrán dentro del espacio compartido corporativo y no en la carpeta personal de "Mi Unidad" del usuario que ejecute la acción.
 
+**IMPORTANTE:** No se requiere ninguna configuración manual para cambiar estos umbrales. El sistema los detecta automáticamente al inicio de cada ejecución según el correo del usuario autenticado en la sesión de Apps Script.
 
-> [!IMPORTANT]
-> No se requiere ninguna configuración manual para cambiar estos umbrales. El sistema los detecta automáticamente al inicio de cada ejecución según el correo del usuario autenticado en la sesión de Apps Script.
+---
+
+## 10. 🧹 Funciones de Mantenimiento y Depuración (Uso Avanzado / TI)
+
+Para evitar la saturación visual y la manipulación accidental por parte de usuarios operativos, se han omitido del menú de usuario por defecto las siguientes dos herramientas de depuración masiva. No obstante, las funciones siguen totalmente disponibles en el código fuente:
+
+1. **`ejecutarLimpiezaCancun` (Depuración de Duplicados en Hoja):**
+   * **Propósito:** Busca filas duplicadas en la pestaña activa de Cancún. Consolida los datos en la fila más antigua/completa y envía a la papelera (o desvincula) los archivos duplicados PDF/XML en Drive correspondientes a los registros redundantes.
+2. **`ejecutarLimpiezaHuerfanosDriveCancun` (Limpieza de Archivos Huérfanos en Drive):**
+   * **Propósito:** Escanea recursivamente las carpetas físicas de Cancún (`Año/Mes`) buscando archivos con sufijos de duplicación (como `_(1)`, `_(2)`, ` (1)`, etc.). Compara sus IDs contra la base de datos de Sheets y elimina o remueve de la carpeta únicamente los que no estén enlazados activamente, protegiendo los enlaces reales de la hoja.
+
+### 🔌 Cómo Activar los Accesos Directos en el Menú Superior
+Si un administrador o desarrollador de TI desea volver a habilitar estas opciones directamente en el menú de la hoja de cálculo (`🏢 Consola CFDI`):
+
+1. En la hoja de cálculo, navegue a **Extensiones > Apps Script**.
+2. Abra el archivo [UI.gs](file:///c:/Users/dramos/Documents/Proyecto_FactuMail/UI.gs).
+3. Localice la función `onOpen()` al inicio del archivo.
+4. Reinserte las líneas de registro del menú usando `.addItem()`. El código original modificado debe quedar así:
+
+```javascript
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('🏢 Consola CFDI')
+    .addItem('🎛️ Abrir Consola Central', 'mostrarSidebar')
+    .addSeparator()
+    .addItem('🧹 Depurar Duplicados en Hoja (Cancún)', 'ejecutarLimpiezaCancun')
+    .addItem('📁 Limpiar Archivos Huérfanos en Drive (Cancún)', 'ejecutarLimpiezaHuerfanosDriveCancun')
+    .addSeparator()
+    .addItem('⚙️ Forzar Reindexación de Hojas', 'inicializarEcosistemaHojas')
+    .addToUi();
+}
+```
+
+5. Guarde el archivo (`Ctrl + S`) y recargue la pestaña del navegador de Google Sheets. Los accesos directos volverán a aparecer al instante.
+
+*Nota:* También es posible ejecutar estas funciones directamente desde la barra de herramientas superior de la interfaz de Apps Script seleccionando la función deseada del menú desplegable y presionando **Ejecutar**.
+
+---
+
+## 11. 📋 Próximas Mejoras (Backlog Pendiente)
+
+### ⏰ [PENDIENTE] Recomendación 1: Creación Automatizada de Triggers
+*   **Descripción**: Desarrollar una rutina en `UI.gs` que agregue la opción **`⏰ Programar Procesamiento Automático`** en el menú de Google Sheets (`🏢 Consola CFDI`).
+*   **Objetivo**: Instanciar y configurar programáticamente los disparadores de tiempo (time-driven triggers) de Apps Script de forma invisible para el usuario. Esto evitará la necesidad de acceder al panel de control de desarrollador para programar ejecuciones periódicas.
+
+

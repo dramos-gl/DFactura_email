@@ -6,7 +6,7 @@
  * CONTROL DE VERSIONES DEL ECOSISTEMA
  * @constant {string} VERSION_SISTEMA - Identificador de despliegue para auditoría de procesos.
  */
-const VERSION_SISTEMA = "v7.3 - Arquitectura Modular y Renombrado Semántico";
+const VERSION_SISTEMA = "v9.1 - Prevención de Duplicados e Integridad de Formato";
 
 /**
  * CONSTANTES DE RUTA Y SISTEMA DE ARCHIVOS (Drive)
@@ -34,19 +34,19 @@ const MESES_ABREVIADOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago"
  */
 const CONFIG_MUNICIPIOS = {
   "CANCUN": {
-    label: "Facturas Municipales/Cancún",
+    label: "Facturas Municipios/Cancún",
     hojaDestino: "Cancún",
     nombreCarpeta: "Cancún",
     remitentesAprobados: ["*"]
   },
   "PLAYA": {
-    label: "Facturas Municipales/Playa",
+    label: "Facturas Municipios/Playa",
     hojaDestino: "Playa",
     nombreCarpeta: "Playa del Carmen",
     remitentesAprobados: ["*"]
   },
   "TULUM": {
-    label: "Facturas Municipales/Tulum",
+    label: "Facturas Municipios/Tulum",
     hojaDestino: "Tulum",
     nombreCarpeta: "Tulum",
     remitentesAprobados: ["*"]
@@ -77,6 +77,34 @@ const ENCABEZADOS_ESTANDAR = [
   "ID Origen (Correo/Local)",   // Col 16
   "Hash XML"                    // Col 17
 ];
+
+const ENCABEZADOS_CANCUN = [
+  "Fecha Emisión",              // Col 1
+  "Nombre Emisor",              // Col 2
+  "Nombre Receptor",            // Col 3
+  "Serie-Folio",                // Col 4
+  "UUID Fiscal",                // Col 5
+  "Forma de Pago",              // Col 6
+  "Total Facturado",            // Col 7
+  "Clave Catastral",            // Col 8
+  "Descripción / Conceptos",    // Col 9
+  "Fecha Límite Pago",          // Col 10
+  "Referencia Bancaria",        // Col 11
+  "Padrón",                     // Col 12 (Cancún exclusivo)
+  "Nombre Archivo PDF",         // Col 13
+  "Enlace PDF",                 // Col 14
+  "Enlace XML",                 // Col 15
+  "Fecha Procesamiento",        // Col 16
+  "ID Origen (Correo/Local)",   // Col 17
+  "Hash XML"                    // Col 18
+];
+
+function obtenerEncabezadosPorMunicipio(municipioClave) {
+  if (municipioClave === "CANCUN") {
+    return ENCABEZADOS_CANCUN;
+  }
+  return ENCABEZADOS_ESTANDAR;
+}
 
 /**
  * CATÁLOGO HOMOLOGADO DEL SAT: FORMAS DE PAGO (CFDI 4.0)
@@ -200,4 +228,14 @@ function esClaveCatastralValida(clave) {
     return false;
   }
 }
-
+
+/* Helper to extract Padrón number from text (XML or PDF) */
+function extraerPadronDeTexto(texto) {
+  if (!texto) return "N/A";
+  const match = texto.toString().match(/Padr\u00f3n\s*[:\-\.\s]*\s*(\d+)|Padron\s*[:\-\.\s]*\s*(\d+)/i);
+  if (match) {
+    return match[1] || match[2];
+  }
+  return "N/A";
+}
+
