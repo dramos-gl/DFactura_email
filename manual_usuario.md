@@ -9,7 +9,7 @@ Este manual describe todos los prerrequisitos, ubicaciones, nombres de directori
 
 ## 1. Introducción al Ecosistema
 
-**FactuMail** es un motor inteligente desarrollado en **Google Apps Script** que automatiza la recaudación, validación, extracción de texto (vía parsing XML y OCR en PDF), renombrado inteligente y clasificación física de comprobantes fiscales de los municipios de **Cancún**, **Playa del Carmen** y **Tulum**. 
+**FactuMail** es un motor inteligente desarrollado en **Google Apps Script** que automatiza la recaudación, validación, extracción de texto (vía parsing XML y OCR en PDF), renombrado inteligente y clasificación física de comprobantes fiscales de los municipios de **Cancun**, **Playa del Carmen** y **Tulum**. 
 
 El sistema admite dos flujos de entrada:
 1.  **Flujo Gmail:** Lectura automatizada de la bandeja de entrada según etiquetas jerárquicas específicas.
@@ -50,7 +50,7 @@ Cuando el motor procesa un par de archivos con éxito (vía Gmail o Carga Local)
 
 `Facturas CFDI / Descarga CFDI Recibidos / [Municipio] / [Año] / [Mes] /`
 
-*   *Nombres de Carpetas Municipales:* `Cancún`, `Playa del Carmen` o `Tulum` (definidos en `0_Config.gs`).
+*   *Nombres de Carpetas Municipales:* `Cancun`, `Playa del Carmen` o `Tulum` (definidos en `0_Config.gs`).
 *   *Meses:* Representados de forma numérica de dos dígitos (ej. `01`, `02`, ..., `12`).
 *   *Ejemplo de ruta final:* `Facturas CFDI / Descarga CFDI Recibidos / Playa del Carmen / 2026 / 05 / MSO_PREDIAL_12345.pdf`
 
@@ -62,7 +62,7 @@ To que el flujo de extracción automática por correo funcione de manera óptima
 
 ### 🏷️ Creación de Etiquetas Jerárquicas
 El script busca correos clasificados en etiquetas jerárquicas exactas de Gmail. En la configuración activa, estas corresponden a:
-*   **Para Cancún:** `Facturas Municipios/Cancún`
+*   **Para Cancun:** `Facturas Municipios/Cancun`
 *   **Para Playa del Carmen:** `Facturas Municipios/Playa`
 *   **Para Tulum:** `Facturas Municipios/Tulum`
 
@@ -82,7 +82,7 @@ El libro de cálculo actúa como base de datos transaccional. Para asegurar la i
 
 ### 📑 Pestañas del Spreadsheet
 Deben existir pestañas específicas por cada municipio y una para control de incidencias:
-*   **`Cancún`**: Para registros de Cancún.
+*   **`Cancun`**: Para registros de Cancun.
 *   **`Playa`**: Para registros de Playa del Carmen.
 *   **`Tulum`**: Para registros de Tulum.
 *   **`⚠️ Errores_Cola`**: Pestaña técnica para registro de logs de auditoría contable y fallos (ej. montos discrepantes, archivos huérfanos, fallas de OCR).
@@ -115,8 +115,8 @@ Cada pestaña posee exactamente las siguientes 17 columnas en este orden estrict
 | **Col 16**| `ID Origen (Correo/Local)`| Texto (ID único) | Gmail (Message-ID) o Drive (DRIVE_LOCAL_ID) | **Oculta/Protegida** |
 | **Col 17**| `Hash XML` | Texto (SHA-256) | Hash SHA-256 para control de duplicidades | **Oculta/Protegida** |
 
-#### 📍 Pestaña Cancún (18 Columnas - Padrón Exclusivo)
-La hoja de Cancún integra una columna adicional para almacenar el número de padrón municipal. Las últimas 3 columnas técnicas se desplazan una posición a la derecha (Cols 16 a 18) y se ocultan/protegen de forma automática:
+#### 📍 Pestaña Cancun (18 Columnas - Padrón Exclusivo)
+La hoja de Cancun integra una columna adicional para almacenar el número de padrón municipal. Las últimas 3 columnas técnicas se desplazan una posición a la derecha (Cols 16 a 18) y se ocultan/protegen de forma automática:
 
 | Columna | Nombre de Columna Oficial | Tipo de Dato Inyectado | Origen del Dato | Estado |
 | :---: | :--- | :--- | :--- | :--- |
@@ -135,7 +135,7 @@ La hoja de Cancún integra una columna adicional para almacenar el número de pa
 
 Para garantizar la precisión de la información almacenada y evitar interferencias con firmas del SAT o folios del sistema, se aplican reglas de negocio estrictas:
 
-#### 📍 Cancún (Benito Juárez) - Clave Catastral y Padrón
+#### 📍 Cancun (Benito Juárez) - Clave Catastral y Padrón
 *   **Padrón Municipal (Col 12)**:
     *   *Regla:* Extrae la sección numérica que sigue al prefijo `'Padron '` o `'Padrón '` (soportando opcionalmente espacios y dos puntos como divisor, p. ej. `Padrón: 471303`).
     *   *Ejemplo:* `471303` o `12345`
@@ -167,9 +167,9 @@ Esta configuración se modifica directamente en el archivo **0_Config.gs**, dent
 ```javascript
 const CONFIG_MUNICIPIOS = {
   "CANCUN": {
-    label: "Facturas Municipios/Cancún",
-    hojaDestino: "Cancún",
-    nombreCarpeta: "Cancún",
+    label: "Facturas Municipios/Cancun",
+    hojaDestino: "Cancun",
+    nombreCarpeta: "Cancun",
     remitentesAprobados: ["*"] // <--- Propiedad de Control
   },
   ...
@@ -300,9 +300,9 @@ El sistema ha sido estructurado para anclarse a la **carpeta contenedora donde r
 Para evitar la saturación visual y la manipulación accidental por parte de usuarios operativos, se han omitido del menú de usuario por defecto las siguientes dos herramientas de depuración masiva. No obstante, las funciones siguen totalmente disponibles en el código fuente:
 
 1. **`ejecutarLimpiezaCancun` (Depuración de Duplicados en Hoja):**
-   * **Propósito:** Busca filas duplicadas en la pestaña activa de Cancún. Consolida los datos en la fila más antigua/completa y envía a la papelera (o desvincula) los archivos duplicados PDF/XML en Drive correspondientes a los registros redundantes.
+   * **Propósito:** Busca filas duplicadas en la pestaña activa de Cancun. Consolida los datos en la fila más antigua/completa y envía a la papelera (o desvincula) los archivos duplicados PDF/XML en Drive correspondientes a los registros redundantes.
 2. **`ejecutarLimpiezaHuerfanosDriveCancun` (Limpieza de Archivos Huérfanos en Drive):**
-   * **Propósito:** Escanea recursivamente las carpetas físicas de Cancún (`Año/Mes`) buscando archivos con sufijos de duplicación (como `_(1)`, `_(2)`, ` (1)`, etc.). Compara sus IDs contra la base de datos de Sheets y elimina o remueve de la carpeta únicamente los que no estén enlazados activamente, protegiendo los enlaces reales de la hoja.
+   * **Propósito:** Escanea recursivamente las carpetas físicas de Cancun (`Año/Mes`) buscando archivos con sufijos de duplicación (como `_(1)`, `_(2)`, ` (1)`, etc.). Compara sus IDs contra la base de datos de Sheets y elimina o remueve de la carpeta únicamente los que no estén enlazados activamente, protegiendo los enlaces reales de la hoja.
 
 ### 🔌 Cómo Activar los Accesos Directos en el Menú Superior
 Si un administrador o desarrollador de TI desea volver a habilitar estas opciones directamente en el menú de la hoja de cálculo (`🏢 Consola CFDI`):

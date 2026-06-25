@@ -185,6 +185,14 @@ function apiProcesarMunicipio(claveMunicipio) {
 function procesarMunicipio(clave) {
   const claveEstandar = clave.toUpperCase().trim();
   const config = CONFIG_MUNICIPIOS[claveEstandar];
+
+  // Validar preventivamente la existencia de la etiqueta seleccionada en Gmail
+  if (config.label) {
+    const etiquetaExiste = GmailApp.getUserLabelByName(config.label);
+    if (!etiquetaExiste) {
+      throw new Error(`La etiqueta de Gmail "${config.label}" no existe en esta cuenta. Por favor, ejecuta primero "Forzar Reindexación de Hojas" en el menú "🏢 Consola CFDI" para crearla de forma automática.`);
+    }
+  }
   
   const libroCalculo = obtenerHojaCalculoEcosistema();
   const hojaDestino = obtenerOCrearHojaEnSpreadsheet(libroCalculo, config.hojaDestino);

@@ -34,9 +34,9 @@ const MESES_ABREVIADOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago"
  */
 const CONFIG_MUNICIPIOS = {
   "CANCUN": {
-    label: "Facturas Municipios/Cancún",
-    hojaDestino: "Cancún",
-    nombreCarpeta: "Cancún",
+    label: "Facturas Municipios/Cancun",
+    hojaDestino: "Cancun",
+    nombreCarpeta: "Cancun",
     remitentesAprobados: ["*"]
   },
   "PLAYA": {

@@ -5,111 +5,90 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* variables para el Tema Oscuro (Por defecto) */
+    /* Variables de Diseño - Minimalismo Extremo (Por defecto Tema Oscuro) */
     :root {
-      --bg-dark: #2a3233;       /* Gris azulado oscuro */
-      --bg-card: #181d1e;       /* Gris azulado súper oscuro (tarjetas) */
-      --bg-hover: #212829;      /* Hover intermedio */
-      --border-color: #212829;  /* Bordes */
-      --text-main: #d2dadb;     /* Gris plateado suave, reduce fatiga visual */
-      --text-muted: #9faeb0;    /* Gris azulado apagado */
-      --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      --modal-overlay-bg: rgba(24, 29, 30, 0.85);
-      
-      /* Colores de acento corporativos */
-      --color-primary: #3b82f6; /* Azul primario */
+      --bg-dark: #0f172a;         /* Slate 900 */
+      --bg-card: #1e293b;         /* Slate 800 */
+      --bg-hover: #334155;        /* Slate 700 */
+      --border-color: #334155;    /* Bordes sutiles */
+      --text-main: #f8fafc;       /* Slate 50 */
+      --text-muted: #94a3b8;      /* Slate 400 */
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      --modal-overlay-bg: rgba(15, 23, 42, 0.7);
+      --color-primary: #3b82f6;   /* Azul Corporativo */
       --color-primary-hover: #2563eb;
-      --color-cancun: #f43f5e;  /* Rosa/Rojo suave */
-      --color-playa: #10b981;   /* Verde esmeralda suave */
-      --color-tulum: #06b6d4;   /* Cian suave */
-      --color-legacy: #f59e0b;  /* Ámbar */
     }
 
-    /* Variables para el Tema Claro */
     body.light-theme {
-      --bg-dark: #f5f7fa;       /* Gris hielo corporativo */
-      --bg-card: #ffffff;       /* Blanco puro */
-      --bg-hover: #edf0f5;      /* Gris hielo hover */
-      --border-color: #e1e6ef;  /* Bordes suaves */
-      --text-main: #0f172a;     /* Slate 900 */
-      --text-muted: #64748b;    /* Slate 500 */
-      --shadow: 0 4px 12px rgba(10, 15, 29, 0.06);
-      --modal-overlay-bg: rgba(10, 15, 29, 0.4);
-      --color-primary: #2563eb;
-      --color-primary-hover: #1d4ed8;
+      --bg-dark: #f8fafc;         /* Slate 50 */
+      --bg-card: #ffffff;         /* Blanco */
+      --bg-hover: #f1f5f9;        /* Slate 100 */
+      --border-color: #e2e8f0;    /* Slate 200 */
+      --text-main: #0f172a;       /* Slate 900 */
+      --text-muted: #64748b;      /* Slate 500 */
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --modal-overlay-bg: rgba(15, 23, 42, 0.3);
     }
 
+    /* Ajuste para Sidebar de Google Sheets (~300px) sin scroll vertical en laptops */
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: var(--bg-dark);
       color: var(--text-main);
       margin: 0;
-      padding: 14px;
+      padding: 6px 8px;
       box-sizing: border-box;
       -webkit-font-smoothing: antialiased;
-      transition: background-color 0.3s ease, color 0.3s ease;
+      transition: background-color 0.15s ease, color 0.15s ease;
+      font-size: 11.5px;
     }
 
-    /* Contenedor Principal (Marco de Consola) */
     .console-container {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 8px;
     }
 
-    /* Cabecera de Consola (Plana sin Tarjeta) */
+    /* Cabecera de Altura Mínima */
     .header {
-      position: relative;
-      text-align: center;
-      padding-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 6px;
       border-bottom: 1px solid var(--border-color);
-      margin-bottom: 8px;
-      transition: border-color 0.3s ease;
+      margin-bottom: 2px;
     }
     
-    .header h3 {
+    .header-text h3 {
       margin: 0;
-      font-size: 18px;
+      font-size: 12.5px;
       font-weight: 700;
-      letter-spacing: -0.025em;
       color: var(--text-main);
     }
-    
-    .header p {
-      margin: 6px 0 0 0;
-      font-size: 11.5px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-    }
 
-    /* Switch de Tema */
+    /* Toggle de Tema Micro */
     .theme-toggle {
-      position: absolute;
-      top: -4px;
-      right: 0;
-      background: transparent;
+      background: var(--bg-card);
       border: 1px solid var(--border-color);
       color: var(--text-main);
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
     }
 
     .theme-toggle:hover {
       background-color: var(--bg-hover);
-      transform: scale(1.05);
+      border-color: var(--color-primary);
     }
 
     .theme-toggle svg {
-      width: 18px;
-      height: 18px;
+      width: 13px;
+      height: 13px;
     }
 
     .theme-toggle .sun-icon { display: block; }
@@ -117,77 +96,83 @@
     body.light-theme .theme-toggle .sun-icon { display: none; }
     body.light-theme .theme-toggle .moon-icon { display: block; }
 
-    /* Etiquetas de Sección */
+    /* Tarjetas Modulares Integradas Planas y Compactas */
+    .section-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 10px;
+      box-shadow: var(--shadow);
+    }
+
+    /* Encabezados de Sección de Altura Crítica */
     .section-header {
-      margin-top: 6px;
+      margin-bottom: 6px;
     }
 
     .section-title {
-      font-size: 11.5px;
+      font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
       color: var(--text-main);
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 2px;
+      gap: 5px;
     }
 
     .section-title svg {
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       color: var(--color-primary);
+      flex-shrink: 0;
     }
 
-    .section-desc {
-      font-size: 11.5px;
-      color: var(--text-muted);
-      margin: 0 0 10px 0;
-    }
-
-    /* Botonera Principal */
+    /* Botonera de Acción de Densidad Extrema */
     .btn {
       display: flex;
       align-items: center;
       justify-content: space-between;
       width: 100%;
-      padding: 12px 16px;
-      background-color: var(--bg-card);
+      padding: 6px 10px;
+      background-color: rgba(255, 255, 255, 0.01);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
+      border-radius: 6px;
       color: var(--text-main);
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: var(--shadow);
-      margin-bottom: 10px;
+      transition: all 0.1s ease;
       text-align: left;
+      margin-bottom: 4px;
+    }
+
+    .btn:last-child {
+      margin-bottom: 0;
+    }
+
+    body.light-theme .btn {
+      background-color: rgba(15, 23, 42, 0.01);
     }
 
     .btn:hover:not(:disabled) {
       background-color: var(--bg-hover);
-      transform: translateY(-1px);
-    }
-
-    .btn:active:not(:disabled) {
-      transform: translateY(0);
+      border-color: var(--color-primary);
     }
 
     .btn:disabled {
-      opacity: 0.5;
+      opacity: 0.35;
       cursor: not-allowed;
     }
 
-    /* Layout del botón */
+    /* Contenido Interno de Botones */
     .btn-content {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 8px;
     }
 
     .btn-icon {
-      width: 20px;
-      height: 20px;
+      width: 14px;
+      height: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -195,24 +180,13 @@
     }
 
     .btn-icon svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    .btn-info {
-      display: flex;
-      flex-direction: column;
+      width: 14px;
+      height: 14px;
     }
 
     .btn-title {
-      font-size: 13.5px;
-      font-weight: 600;
-    }
-
-    .btn-subtitle {
       font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 1px;
+      font-weight: 600;
     }
 
     .btn-arrow {
@@ -223,197 +197,213 @@
     }
 
     .btn-arrow svg {
-      width: 14px;
-      height: 14px;
+      width: 10px;
+      height: 10px;
     }
 
-    /* Botones específicos de Históricos */
-    .btn-legacy-folder {
-      border-left: 4px solid var(--color-legacy);
-    }
-    
-    .btn-legacy-folder .btn-icon svg {
-      stroke: var(--color-legacy);
-    }
-
-    .btn-legacy-folder .btn-title {
-      font-size: 12px;
-    }
-
-    .btn-legacy-backfill {
-      border-left: 4px solid var(--color-legacy);
-    }
-    
-    .btn-legacy-backfill .btn-icon svg {
-      stroke: var(--color-legacy);
-    }
-
-    /* Botón Consolidado Gmail (Azul Premium) */
+    /* Variantes de Botón Monocromáticas de Alta Cohesión */
     .btn-consolidated {
-      border-left: 4px solid var(--color-primary);
+      border-left: 3px solid var(--color-primary);
+      background-color: rgba(59, 130, 246, 0.04);
     }
-    .btn-consolidated .btn-icon svg {
-      stroke: var(--color-primary);
-    }
+    .btn-consolidated .btn-icon svg { stroke: var(--color-primary); }
 
-    .badge-recommended {
-      background-color: rgba(255, 255, 255, 0.15);
-      color: #ffffff;
-      font-size: 10px;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
+    .btn-neutral-action {
+      border-left: 3px solid var(--text-muted);
+    }
+    .btn-neutral-action .btn-icon svg { stroke: var(--text-muted); }
+    .btn-neutral-action:hover:not(:disabled) { border-color: var(--color-primary); }
+
+    /* Rejilla Micro de Municipios (Ahorra un enorme espacio vertical) */
+    .municipality-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
       gap: 4px;
-    }
-
-    /* Tooltip personalizado */
-    [data-tooltip] {
-      position: relative;
-    }
-
-    [data-tooltip]::before {
-      content: attr(data-tooltip);
-      position: absolute;
-      bottom: 120%;
-      left: 50%;
-      transform: translateX(-50%) scale(0.9);
-      background-color: var(--bg-hover);
-      color: var(--text-main);
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 10.5px;
-      font-weight: 500;
-      white-space: nowrap;
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: var(--shadow);
-      border: 1px solid var(--border-color);
-      z-index: 100;
-    }
-
-    [data-tooltip]:hover::before {
-      opacity: 1;
-      transform: translateX(-50%) scale(1);
-    }
-
-    /* Botones Segmentados por Municipio */
-    .btn-cancun {
-      border-left: 4px solid var(--color-cancun);
-    }
-    .btn-cancun .btn-icon svg {
-      stroke: var(--color-cancun);
-    }
-
-    .btn-playa {
-      border-left: 4px solid var(--color-playa);
-    }
-    .btn-playa .btn-icon svg {
-      stroke: var(--color-playa);
-    }
-
-    .btn-tulum {
-      border-left: 4px solid var(--color-tulum);
-    }
-    .btn-tulum .btn-icon svg {
-      stroke: var(--color-tulum);
-    }
-
-    /* Tarjeta de Información Inferior */
-    .info-card {
-      background-color: rgba(29, 78, 216, 0.08);
-      border: 1px solid rgba(29, 78, 216, 0.2);
-      border-radius: 12px;
-      padding: 12px 16px;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
       margin-top: 4px;
     }
 
-    .info-card-icon {
-      color: var(--color-primary);
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .info-card-icon svg {
-      width: 18px;
-      height: 18px;
-      stroke: currentColor;
-    }
-
-    .info-card-text {
+    .btn-municipality {
       display: flex;
-      flex-direction: column;
-    }
-
-    .info-card-title {
-      font-size: 12.5px;
-      font-weight: 600;
+      align-items: center;
+      justify-content: center;
+      padding: 5px 2px;
+      background-color: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
       color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.1s ease;
+      text-align: center;
     }
 
-    .info-card-desc {
-      font-size: 11px;
+    body.light-theme .btn-municipality {
+      background-color: rgba(15, 23, 42, 0.02);
+    }
+
+    .btn-municipality:hover:not(:disabled) {
+      background-color: var(--bg-hover);
+      border-color: var(--color-primary);
+    }
+
+    .btn-municipality .mini-title {
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    /* Formulario de Ámbito Micro */
+    .form-group {
+      margin: 6px 0;
+    }
+
+    .form-label {
+      font-size: 9px;
       color: var(--text-muted);
-      margin-top: 1px;
+      display: block;
+      margin-bottom: 3px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
-    /* Contenedor de Carga / Spinner */
+    .select-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .custom-select {
+      width: 100%;
+      padding: 4px 24px 4px 8px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      color: var(--text-main);
+      font-size: 11px;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .custom-select:focus {
+      border-color: var(--color-primary);
+    }
+
+    .select-wrapper::after {
+      content: "";
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-left: 3.5px solid transparent;
+      border-right: 3.5px solid transparent;
+      border-top: 3.5px solid var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* Panel de Checkboxes Minimalista y Súper Plano */
+    .checkbox-panel {
+      margin: 6px 0 8px 0;
+      padding: 6px 8px;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      border: 1px dashed var(--border-color);
+    }
+
+    body.light-theme .checkbox-panel {
+      background: rgba(15, 23, 42, 0.01);
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      cursor: pointer;
+      color: var(--text-main);
+      user-select: none;
+      padding: 2px;
+      border-radius: 3px;
+    }
+
+    .checkbox-container input {
+      width: 12px;
+      height: 12px;
+      accent-color: var(--color-primary);
+      cursor: pointer;
+    }
+
+    /* Panel de Estado / Loader Reducido */
     .loader-container {
       display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 12px;
       background: var(--bg-card);
-      border-radius: 14px;
-      margin-top: 10px;
+      border-radius: 8px;
       border: 1px solid var(--border-color);
       box-shadow: var(--shadow);
-      animation: fadeIn 0.2s ease-out;
     }
     
     .spinner {
-      border: 3px solid var(--border-color);
-      border-top: 3px solid var(--color-primary);
+      border: 2px solid var(--border-color);
+      border-top: 2px solid var(--color-primary);
       border-radius: 50%;
-      width: 32px;
-      height: 32px;
+      width: 20px;
+      height: 20px;
       animation: spin 0.8s linear infinite;
     }
     
     .loader-text {
-      font-size: 12px;
-      font-weight: 500;
-      line-height: 1.5;
-      margin-top: 14px;
-      color: var(--text-muted);
+      font-size: 10px;
+      line-height: 1.3;
+      margin-top: 8px;
+      color: var(--text-main);
       text-align: center;
       white-space: pre-line;
     }
 
-    /* Barra de progreso interactiva */
     .progress-bar-container {
       width: 100%;
-      background-color: var(--border-color);
-      border-radius: 4px;
-      margin-top: 14px;
+      background-color: var(--bg-dark);
+      border-radius: 3px;
+      margin-top: 8px;
       overflow: hidden;
       display: none;
+      border: 1px solid var(--border-color);
     }
     
     .progress-bar-fill {
-      height: 6px;
+      height: 4px;
       width: 0%;
       background-color: var(--color-primary);
-      transition: width 0.3s ease;
+      transition: width 0.2s ease;
     }
 
-    /* Modales y Alertas Personalizados */
+    /* Pequeña Nota Sutil al Pie de Página (Ahorra ~60px de la info-card anterior) */
+    .footer-note {
+      text-align: center;
+      font-size: 9.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      padding: 2px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    body.light-theme .footer-note {
+      border-top: 1px solid rgba(15, 23, 42, 0.05);
+    }
+
+    /* Modales Redimensionados para Sidebar */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -422,56 +412,55 @@
       width: 100%;
       height: 100%;
       background: var(--modal-overlay-bg);
-      backdrop-filter: blur(4px);
-      z-index: 100;
+      backdrop-filter: blur(2px);
+      z-index: 1000;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: 8px;
       box-sizing: border-box;
-      transition: background-color 0.3s ease;
     }
     
     .modal-box {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 16px;
+      border-radius: 8px;
       width: 100%;
-      max-width: 300px;
-      padding: 20px;
+      max-width: 240px;
+      padding: 10px 12px;
       box-shadow: var(--shadow);
-      animation: scaleUp 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: scaleUp 0.1s ease-out;
     }
     
     .modal-title {
-      font-size: 14px;
+      font-size: 11.5px;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
       color: var(--text-main);
     }
     
     .modal-desc {
-      font-size: 12px;
+      font-size: 10px;
       color: var(--text-muted);
-      line-height: 1.5;
-      margin-bottom: 20px;
+      line-height: 1.3;
+      margin-bottom: 10px;
+      white-space: pre-line;
     }
     
     .modal-actions {
       display: flex;
-      gap: 10px;
+      gap: 6px;
       justify-content: flex-end;
     }
     
     .modal-btn {
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 10px;
       font-weight: 600;
       cursor: pointer;
       border: 1px solid var(--border-color);
       background: transparent;
       color: var(--text-main);
-      transition: all 0.1s ease;
     }
     
     .modal-btn-primary {
@@ -483,22 +472,14 @@
     .modal-btn-primary:hover {
       background: var(--color-primary-hover);
     }
-    
-    .modal-btn:hover:not(.modal-btn-primary) {
-      background: var(--bg-hover);
-    }
 
     /* Animaciones */
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
     @keyframes scaleUp {
-      from { transform: scale(0.95); opacity: 0; }
+      from { transform: scale(0.97); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
   </style>
@@ -507,32 +488,32 @@
 
   <div class="console-container">
     
-    <!-- Cabecera Plana -->
+    <!-- Cabecera Ultra-Compacta -->
     <div class="header">
-      <h3>Panel de Control</h3>
+      <div class="header-text">
+        <h3>Panel de Control</h3>
+      </div>
       
       <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">
-        <!-- Sun Icon -->
-        <svg class="sun-icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <svg class="sun-icon" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
         </svg>
-        <!-- Moon Icon -->
-        <svg class="moon-icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <svg class="moon-icon" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
         </svg>
       </button>
     </div>
 
     <!-- Sección: Acción Gmail -->
-    <div class="section-header">
-      <div class="section-title">
-        <!-- Mail Icon -->
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-        Acción Consolidada Gmail
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          Procesamiento Gmail
+        </div>
       </div>
-      <p class="section-desc">Procesa todas las facturas no procesadas en Gmail.</p>
       
       <button id="btn-todo" class="btn btn-consolidated" onclick="procesarTodo()">
         <div class="btn-content">
@@ -542,37 +523,48 @@
             </svg>
           </div>
           <div class="btn-info">
-            <span class="btn-title">Procesar Todas las Facturas</span>
+            <span class="btn-title">Procesar Todo</span>
           </div>
         </div>
         <div class="btn-arrow">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
         </div>
       </button>
+
+      <!-- Segmentación Horizontal Micro -->
+      <div class="municipality-grid">
+        <button id="btn-cc" class="btn-municipality" onclick="procesarIndividual('CANCUN')" title="Filtrar por Cancún">
+          <span class="mini-title">Cancún</span>
+        </button>
+        <button id="btn-py" class="btn-municipality" onclick="procesarIndividual('PLAYA')" title="Filtrar por Playa">
+          <span class="mini-title">Playa</span>
+        </button>
+        <button id="btn-tl" class="btn-municipality" onclick="procesarIndividual('TULUM')" title="Filtrar por Tulum">
+          <span class="mini-title">Tulum</span>
+        </button>
+      </div>
     </div>
 
-    <!-- Sección: Segmentación -->
-    <div class="section-header">
-      <div class="section-title">
-        <!-- Map Pin Icon -->
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-        Segmentación por Municipio Gmail
+    <!-- Sección: Históricos y Mantenimiento -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+          Históricos & Enriquecimiento
+        </div>
       </div>
-      <p class="section-desc">Procesa facturas filtradas por municipio de destino.</p>
       
-      <button id="btn-cc" class="btn btn-cancun" onclick="procesarIndividual('CANCUN')">
+      <button id="btn-legacy" class="btn btn-neutral-action" onclick="confirmarOrganizacion()">
         <div class="btn-content">
           <div class="btn-icon">
             <svg fill="none" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
             </svg>
           </div>
           <div class="btn-info">
-            <span class="btn-title">Procesar Facturas Cancún</span>
+            <span class="btn-title">Organizar Drive Histórico</span>
           </div>
         </div>
         <div class="btn-arrow">
@@ -580,97 +572,42 @@
         </div>
       </button>
 
-      <button id="btn-py" class="btn btn-playa" onclick="procesarIndividual('PLAYA')">
-        <div class="btn-content">
-          <div class="btn-icon">
-            <svg fill="none" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m0-18l4 4m-4-4L8 7m8 14H8m8-5H8M8 11h8" />
-            </svg>
-          </div>
-          <div class="btn-info">
-            <span class="btn-title">Procesar Facturas Playa</span>
-          </div>
+      <div class="form-group">
+        <label for="backfill-scope" class="form-label">Ámbito de Trabajo:</label>
+        <div class="select-wrapper">
+          <select id="backfill-scope" class="custom-select">
+            <option value="ACTIVE">📍 Pestaña Activa</option>
+            <option value="ALL">🌎 Todas las Hojas</option>
+            <option value="CANCUN">Cancún</option>
+            <option value="PLAYA">Playa</option>
+            <option value="TULUM">Tulum</option>
+          </select>
         </div>
-        <div class="btn-arrow">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-        </div>
-      </button>
-
-      <button id="btn-tl" class="btn btn-tulum" onclick="procesarIndividual('TULUM')">
-        <div class="btn-content">
-          <div class="btn-icon">
-            <svg fill="none" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9-9c1.657 0 3 4.03 3 9s-1.343 9-3 9m0-18c-1.657 0-3 4.03-3 9s1.343 9 3 9m-9-9a9 9 0 019-9" />
-            </svg>
-          </div>
-          <div class="btn-info">
-            <span class="btn-title">Procesar Facturas Tulum</span>
-          </div>
-        </div>
-        <div class="btn-arrow">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-        </div>
-      </button>
-    </div>
-
-    <!-- Sección: Históricos -->
-    <div class="section-header">
-      <div class="section-title">
-        <!-- Folder Icon -->
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-        </svg>
-        Mantenimiento de Históricos
-      </div>
-      <p class="section-desc">Administra y mantiene la información histórica del sistema.</p>
-      
-      <button id="btn-legacy" class="btn btn-legacy-folder" onclick="confirmarOrganizacion()" data-tooltip="Facturas descargadas de todos los municipios">
-        <div class="btn-content">
-          <div class="btn-icon">
-            <svg fill="none" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v6m3-3H9m4.062-12.902a2 2 0 012.828 0l3.856 3.856a2 2 0 010 2.828L14.22 17.5a2 2 0 01-2.828 0L7.536 13.644a2 2 0 010-2.828l3.856-3.856z" />
-            </svg>
-          </div>
-          <div class="btn-info">
-            <span class="btn-title">Organizar Facturas Históricas</span>
-          </div>
-        </div>
-        <div class="btn-arrow">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-        </div>
-      </button>
-
-      <div style="margin: 8px 0 12px 0;">
-        <label for="backfill-scope" style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 5px; font-weight: 600;">Ámbito de Mantenimiento:</label>
-        <select id="backfill-scope" style="width: 100%; padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); font-size: 12px; font-family: inherit; outline: none; cursor: pointer; transition: border-color 0.2s;">
-          <option value="ACTIVE">📍 Pestaña Activa</option>
-          <option value="ALL">🌎 Todas las Hojas</option>
-          <option value="CANCUN">Cancún</option>
-          <option value="PLAYA">Playa</option>
-          <option value="TULUM">Tulum</option>
-        </select>
       </div>
 
-      <!-- Checkboxes de Selección de Campos -->
-      <div style="margin: 0 0 14px 0; padding: 10px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px dashed var(--border-color);">
-        <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 600;">Campos a Actualizar:</label>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer; color: var(--text-main);">
-            <input type="checkbox" id="chk-claveCatastral" checked style="cursor: pointer;"> Clave Catastral
+      <!-- Configuración de Campos Compacta -->
+      <div class="checkbox-panel">
+        <div class="checkbox-grid">
+          <label class="checkbox-container">
+            <input type="checkbox" id="chk-claveCatastral" checked onchange="actualizarTextoBotonBackfill()">
+            <span>Clave Catastral</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer; color: var(--text-main);">
-            <input type="checkbox" id="chk-padron" checked style="cursor: pointer;"> Padrón (Cancún)
+          <label class="checkbox-container">
+            <input type="checkbox" id="chk-padron" checked onchange="actualizarTextoBotonBackfill()">
+            <span>Padrón</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer; color: var(--text-main);">
-            <input type="checkbox" id="chk-fechaLimite" checked style="cursor: pointer;"> Fecha Límite
+          <label class="checkbox-container">
+            <input type="checkbox" id="chk-fechaLimite" checked onchange="actualizarTextoBotonBackfill()">
+            <span>Fecha Límite</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer; color: var(--text-main);">
-            <input type="checkbox" id="chk-referencia" checked style="cursor: pointer;"> Ref. Bancaria
+          <label class="checkbox-container">
+            <input type="checkbox" id="chk-referencia" checked onchange="actualizarTextoBotonBackfill()">
+            <span>Ref. Bancaria</span>
           </label>
         </div>
       </div>
 
-      <button id="btn-backfill" class="btn btn-legacy-backfill" onclick="confirmarBackfill()" data-tooltip="Fecha límite de pago, referencia bancaria">
+      <button id="btn-backfill" class="btn btn-neutral-action" onclick="confirmarBackfill()">
         <div class="btn-content">
           <div class="btn-icon">
             <svg fill="none" viewBox="0 0 24 24" stroke-width="2">
@@ -678,7 +615,7 @@
             </svg>
           </div>
           <div class="btn-info">
-            <span class="btn-title">Actualizar CC, Padrón..</span>
+            <span class="btn-title" id="btn-backfill-title">Actualizar Filas Vacías (OCR)</span>
           </div>
         </div>
         <div class="btn-arrow">
@@ -687,27 +624,19 @@
       </button>
     </div>
 
-    <!-- Loader / Progreso -->
+    <!-- Contenedor dinámico de carga -->
     <div id="loader" class="loader-container">
       <div class="spinner"></div>
-      <div id="loader-msg" class="loader-text">Conectando con el servidor...</div>
+      <div id="loader-msg" class="loader-text">Conectando...</div>
       <div id="progress-container" class="progress-bar-container">
         <div id="progress-bar" class="progress-bar-fill"></div>
       </div>
-      <button id="btn-cancelar" class="modal-btn" style="margin-top: 15px; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); color: #f87171; display: none;" onclick="cancelarProcesoActual()">Cancelar Proceso</button>
+      <button id="btn-cancelar" class="modal-btn" style="margin-top: 8px; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); color: #ef4444; display: none; width: 100%; padding: 4px;" onclick="cancelarProcesoActual()">Cancelar Proceso</button>
     </div>
 
-    <!-- Info Box Inferior -->
-    <div class="info-card">
-      <div class="info-card-icon">
-        <svg fill="none" viewBox="0 0 24 24" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 111.063.852l-.708 2.836a.75.75 0 001.063.852l.041-.028M12 8.25h.008v.008H12V8.25z" />
-        </svg>
-      </div>
-      <div class="info-card-text">
-        <span class="info-card-title">Información</span>
-        <span class="info-card-desc">Las acciones se ejecutan en segundo plano.</span>
-      </div>
+    <!-- Sutil Nota de Estado al Pie -->
+    <div class="footer-note">
+      Los procesos asíncronos corren en servidores de Google
     </div>
 
   </div>
@@ -716,7 +645,7 @@
   <div id="modal-confirm" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-title" id="confirm-title">¿Confirmar Acción?</div>
-      <div class="modal-desc" id="confirm-desc">Descripción de la acción a ejecutar.</div>
+      <div class="modal-desc" id="confirm-desc">Descripción detallada del proceso.</div>
       <div class="modal-actions">
         <button class="modal-btn" onclick="cerrarConfirm(false)">Cancelar</button>
         <button class="modal-btn modal-btn-primary" onclick="cerrarConfirm(true)">Aceptar</button>
@@ -724,11 +653,11 @@
     </div>
   </div>
 
-  <!-- Modal de Alerta -->
+  <!-- Modal de Alerta / Notificaciones -->
   <div id="modal-alert" class="modal-overlay">
     <div class="modal-box">
-      <div class="modal-title" id="alert-title">Consola de Notificación</div>
-      <div class="modal-desc" id="alert-desc">Mensaje recibido del servidor.</div>
+      <div class="modal-title" id="alert-title">Notificación</div>
+      <div class="modal-desc" id="alert-desc">Mensaje del servidor.</div>
       <div class="modal-actions">
         <button class="modal-btn modal-btn-primary" onclick="cerrarAlerta()">Entendido</button>
       </div>
@@ -736,12 +665,13 @@
   </div>
 
   <script>
-    // Configuración Inicial del Tema de Color
+    // Inicialización del Tema Guardado y textos de botones
     (function initTheme() {
       const savedTheme = localStorage.getItem('console-theme') || 'dark';
       if (savedTheme === 'light') {
         document.body.classList.add('light-theme');
       }
+      setTimeout(actualizarTextoBotonBackfill, 0); // Esperar a la carga del DOM
     })();
 
     function toggleTheme() {
@@ -749,7 +679,43 @@
       localStorage.setItem('console-theme', isCurrentlyLight ? 'light' : 'dark');
     }
 
-    // Callbacks dinámicos para modales
+    function actualizarTextoBotonBackfill() {
+      const chkCC = document.getElementById('chk-claveCatastral').checked;
+      const chkPadron = document.getElementById('chk-padron').checked;
+      const chkFecha = document.getElementById('chk-fechaLimite').checked;
+      const chkRef = document.getElementById('chk-referencia').checked;
+      
+      const btnTitle = document.getElementById('btn-backfill-title');
+      const btnBackfill = document.getElementById('btn-backfill');
+      
+      let seleccionados = [];
+      if (chkCC) seleccionados.push('Clave Catastral');
+      if (chkPadron) seleccionados.push('Padrón');
+      if (chkFecha) seleccionados.push('Fecha Límite');
+      if (chkRef) seleccionados.push('Ref. Bancaria');
+      
+      if (seleccionados.length === 0) {
+        btnTitle.innerText = 'Seleccione Campos';
+        btnBackfill.disabled = true;
+      } else {
+        btnBackfill.disabled = false;
+        if (seleccionados.length === 4) {
+          btnTitle.innerText = 'Actualizar Todos los Campos';
+        } else if (seleccionados.length === 1) {
+          btnTitle.innerText = 'Actualizar ' + seleccionados[0];
+        } else {
+          // Abreviar para múltiples
+          let abrevs = [];
+          if (chkCC) abrevs.push('CC');
+          if (chkPadron) abrevs.push('Padrón');
+          if (chkFecha) abrevs.push('Fecha Lím.');
+          if (chkRef) abrevs.push('Ref. Banc.');
+          btnTitle.innerText = 'Actualizar ' + abrevs.join(', ');
+        }
+      }
+    }
+
+    // Callbacks dinámicos de Ventanas Emergentes
     let confirmCallback = null;
 
     function abrirConfirm(titulo, descripcion, callback) {
@@ -777,34 +743,44 @@
       document.getElementById('modal-alert').style.display = 'none';
     }
 
-    // Funciones del Ciclo de UI
+    // Estado del Ciclo de Trabajo e Interfaz
     let canceladoPorUsuario = false;
+    let resolvedScopeGlobal = null; // Ámbito congelado por el servidor al iniciar Backfill
 
     function cancelarProcesoActual() {
       canceladoPorUsuario = true;
       document.getElementById('btn-cancelar').disabled = true;
-      document.getElementById('loader-msg').innerText = 'Cancelando proceso actual... por favor espere.';
+      document.getElementById('loader-msg').innerText = 'Cancelando en el servidor...\nEspere la confirmación de Google.';
       google.script.run
         .withSuccessHandler(function() {
           desbloquearInterfaz();
-          abrirAlerta('Proceso Cancelado', 'El proceso fue interrumpido de forma segura.');
+          abrirAlerta('Proceso Cancelado', 'La tarea en ejecución se detuvo de forma segura.');
         })
         .withFailureHandler(function(err) {
           desbloquearInterfaz();
-          abrirAlerta('Error de Cancelación', 'No se pudo cancelar el proceso: ' + err);
+          abrirAlerta('Error de Cancelación', 'No se pudo cancelar el proceso remoto: ' + err);
         })
         .apiCancelarProceso();
     }
 
     function bloquearInterfaz(mensaje) {
+      // Botones de acción
       document.getElementById('btn-legacy').disabled = true;
       document.getElementById('btn-backfill').disabled = true;
       document.getElementById('btn-todo').disabled = true;
       document.getElementById('btn-cc').disabled = true;
       document.getElementById('btn-py').disabled = true;
       document.getElementById('btn-tl').disabled = true;
+      // Controles de formulario (selector de ámbito y checkboxes)
+      document.getElementById('backfill-scope').disabled = true;
+      document.getElementById('chk-claveCatastral').disabled = true;
+      document.getElementById('chk-padron').disabled = true;
+      document.getElementById('chk-fechaLimite').disabled = true;
+      document.getElementById('chk-referencia').disabled = true;
+      
       document.getElementById('loader-msg').innerText = mensaje;
       document.getElementById('loader').style.display = 'flex';
+      
       if (!canceladoPorUsuario) {
         document.getElementById('btn-cancelar').style.display = 'inline-block';
         document.getElementById('btn-cancelar').disabled = false;
@@ -813,25 +789,34 @@
       }
     }
 
-    // Desbloqueo seguro de la botonera lateral
     function desbloquearInterfaz() {
       canceladoPorUsuario = false;
+      resolvedScopeGlobal = null; // Liberar ámbito congelado
+      // Botones de acción
       document.getElementById('btn-legacy').disabled = false;
-      document.getElementById('btn-backfill').disabled = false;
       document.getElementById('btn-todo').disabled = false;
       document.getElementById('btn-cc').disabled = false;
       document.getElementById('btn-py').disabled = false;
       document.getElementById('btn-tl').disabled = false;
+      // Controles de formulario (selector de ámbito y checkboxes)
+      document.getElementById('backfill-scope').disabled = false;
+      document.getElementById('chk-claveCatastral').disabled = false;
+      document.getElementById('chk-padron').disabled = false;
+      document.getElementById('chk-fechaLimite').disabled = false;
+      document.getElementById('chk-referencia').disabled = false;
+      // Recalcular estado del botón backfill según checkboxes
+      actualizarTextoBotonBackfill();
+      
       document.getElementById('loader').style.display = 'none';
       document.getElementById('progress-container').style.display = 'none';
       document.getElementById('btn-cancelar').style.display = 'none';
     }
 
-    // Handlers de Acciones del Menú
+    // Handlers de la Lógica de Negocio
     function confirmarOrganizacion() {
       abrirConfirm(
-        '¿Confirmas la acción?', 
-        'Deseas iniciar el escaneo, OCR y renombrado de la carpeta de archivos descargados. Este proceso puede demorar unos minutos.',
+        '¿Confirmar Organización?', 
+        'Se escaneará la carpeta en Google Drive, emparejando XMLs con PDFs mediante OCR y estructurando el histórico cronológicamente.',
         function() {
           ejecutarOrganizacionHistorica();
         }
@@ -839,15 +824,15 @@
     }
 
     function ejecutarOrganizacionHistorica() {
-      bloquearInterfaz('Analizando archivos sueltos en Drive, emparejando XMLs con PDFs mediante metadatos y aplicando estructura cronológica corporativa...');
+      bloquearInterfaz('Analizando archivos en Drive, emparejando metadatos XML/PDF y organizando carpetas...');
       google.script.run
         .withSuccessHandler(function(response) {
           desbloquearInterfaz();
-          abrirAlerta('Operación Finalizada', response.mensaje);
+          abrirAlerta('Operación Completada', response.mensaje);
         })
         .withFailureHandler(function(err) {
           desbloquearInterfaz();
-          abrirAlerta('Error de Ejecución', 'Error crítico: ' + err);
+          abrirAlerta('Error', 'Fallo del servidor: ' + err);
         })
         .apiOrganizarCarpetaDescargados();
     }
@@ -861,11 +846,10 @@
       };
     }
 
-    // Confirmación y lanzamiento del backfill histórico de clave catastral, fechas y referencias
     function confirmarBackfill() {
       const campos = obtenerCamposSeleccionados();
       if (!campos.claveCatastral && !campos.padron && !campos.fechaLimite && !campos.referencia) {
-        abrirAlerta('Selección Requerida', 'Debes seleccionar al menos un campo para enriquecer.');
+        abrirAlerta('Selección Requerida', 'Selecciona al menos un campo para enriquecer la hoja contable.');
         return;
       }
 
@@ -874,23 +858,22 @@
       
       let listCampos = [];
       if (campos.claveCatastral) listCampos.push('Clave Catastral');
-      if (campos.padron) listCampos.push('Padrón (Cancún)');
+      if (campos.padron) listCampos.push('Padrón');
       if (campos.fechaLimite) listCampos.push('Fecha Límite Pago');
       if (campos.referencia) listCampos.push('Referencia Bancaria');
       
       abrirConfirm(
         '¿Confirmar Enriquecimiento?', 
-        'Deseas analizar las facturas registradas en las hojas contables.\n\n' +
-        '📍 Ámbito seleccionado: ' + scopeText + '\n' +
-        '🗂️ Campos a actualizar: ' + listCampos.join(', ') + '\n\n' +
-        'Se escanearán aquellas filas donde estos datos estén vacíos o "N/A", se recuperará su PDF mediante OCR y se actualizará su información.',
+        'Se analizarán las filas contables con valores vacíos o "N/A" para recuperarlos desde su respectivo PDF.\n\n' +
+        '📍 Ámbito: ' + scopeText + '\n' +
+        '🗂️ Campos: ' + listCampos.join(', '),
         function() {
           ejecutarBackfill();
         }
       );
     }
 
-    // Variables globales de progreso para el Backfill por lotes
+    // Procesamiento en Lotes del Backfill
     let totalPendientesGlobal = 0;
     let procesadosGlobal = 0;
     let actualizadosGlobal = 0;
@@ -901,19 +884,26 @@
       const scope = document.getElementById('backfill-scope').value;
       const campos = obtenerCamposSeleccionados();
       
-      bloquearInterfaz('Contabilizando registros pendientes en las hojas de cálculo...');
+      bloquearInterfaz('Contabilizando filas vacías o pendientes...');
       document.getElementById('progress-container').style.display = 'none';
       document.getElementById('progress-bar').style.width = '0%';
-      hojaActualDisplay = 'Escaneando hojas contables';
+      hojaActualDisplay = 'Escaneando hojas';
       
       google.script.run
          .withSuccessHandler(function(response) {
+          if (response.resolvedScope === "NONE") {
+            desbloquearInterfaz();
+            abrirAlerta('Sin Coincidencia', 'La pestaña activa no corresponde a ningún municipio configurado.');
+            return;
+          }
           if (response.totalPendientes === 0) {
             desbloquearInterfaz();
-            abrirAlerta('Operación Finalizada', 'No se encontraron registros pendientes con los datos seleccionados en "N/A" o vacíos para este ámbito.');
+            abrirAlerta('Completado', 'No se encontraron filas con los criterios de búsqueda especificados.');
             return;
           }
           
+          // Congelar el ámbito resuelto por el servidor para todo el ciclo de lotes
+          resolvedScopeGlobal = response.resolvedScope;
           totalPendientesGlobal = response.totalPendientes;
           procesadosGlobal = 0;
           actualizadosGlobal = 0;
@@ -923,7 +913,7 @@
         })
         .withFailureHandler(function(err) {
           desbloquearInterfaz();
-          abrirAlerta('Error de Inicialización', 'No se pudo obtener la cantidad de pendientes: ' + err);
+          abrirAlerta('Error de Análisis', 'Fallo al contabilizar los pendientes: ' + err);
         })
         .apiObtenerMetricasBackfill(scope, campos);
     }
@@ -937,14 +927,15 @@
       let porcentaje = Math.min(100, Math.round((procesadosGlobal / totalPendientesGlobal) * 100));
       document.getElementById('progress-bar').style.width = porcentaje + '%';
       
-      let msg = 'Enriqueciendo claves, padrones, fechas y referencias...\n' + 
-                '📍 Última pestaña: ' + hojaActualDisplay + '\n' +
-                'Progreso: ' + procesadosGlobal + ' de ' + totalPendientesGlobal + ' (' + porcentaje + '%)\n' +
-                'Actualizadas: ' + actualizadosGlobal;
+      let msg = 'Completando registros faltantes...\n' + 
+                '📍 Hoja: ' + hojaActualDisplay + '\n' +
+                'Avance: ' + procesadosGlobal + ' de ' + totalPendientesGlobal + ' (' + porcentaje + '%)\n' +
+                'Completados: ' + actualizadosGlobal;
       
       document.getElementById('loader-msg').innerText = msg;
       
-      const scope = document.getElementById('backfill-scope').value;
+      // Usar el ámbito congelado por el servidor en vez del dropdown live
+      const scope = resolvedScopeGlobal;
       const campos = obtenerCamposSeleccionados();
       
       google.script.run
@@ -955,7 +946,7 @@
           }
           if (!result.exito) {
             desbloquearInterfaz();
-            abrirAlerta('Error en Lote', 'Fallo al procesar el lote: ' + result.mensaje);
+            abrirAlerta('Error de Lote', 'Fallo al procesar el lote: ' + result.mensaje);
             return;
           }
           
@@ -969,9 +960,8 @@
             document.getElementById('progress-bar').style.width = '100%';
             desbloquearInterfaz();
             abrirAlerta(
-              'Enriquecimiento Completado', 
-              'Se han analizado todos los registros pendientes.\n\n' +
-              '✅ Registros procesados y actualizados con éxito.'
+              'Proceso Exitoso', 
+              'Se han analizado y enriquecido todos los registros pendientes identificados.'
             );
           } else {
             procesarSiguienteLoteBackfill();
@@ -979,36 +969,36 @@
         })
         .withFailureHandler(function(err) {
           desbloquearInterfaz();
-          abrirAlerta('Error de Ejecución', 'Se interrumpió la conexión: ' + err);
+          abrirAlerta('Error de Red', 'Conexión interrumpida temporalmente con Google: ' + err);
         })
         .apiProcesarLoteBackfill(scope, campos);
     }
 
     function procesarTodo() {
-      bloquearInterfaz('Escaneando todas las etiquetas de Gmail y ejecutando conversión OCR masiva...');
+      bloquearInterfaz('Escaneando etiquetas en Gmail y procesando comprobantes...');
       google.script.run
         .withSuccessHandler(function(response) { 
           desbloquearInterfaz(); 
-          abrirAlerta('Proceso Exitoso', response.mensaje); 
+          abrirAlerta('Completado', response.mensaje); 
         })
         .withFailureHandler(function(err) { 
           desbloquearInterfaz(); 
-          abrirAlerta('Fallo de Red', 'Error de red: ' + err); 
+          abrirAlerta('Error', 'Fallo al procesar la cola de Gmail: ' + err); 
         })
         .apiProcesarTodo();
     }
 
-    // Procesamiento individual por municipio
+    // Procesamiento individual de municipios (corregido y unificado en JS)
     function procesarIndividual(municipio) {
-      bloquearInterfaz('Procesando cola de correos para ' + municipio + '...');
+      bloquearInterfaz('Procesando correos de ' + municipio + '...');
       google.script.run
         .withSuccessHandler(function(response) { 
           desbloquearInterfaz(); 
-          abrirAlerta('Proceso Completado', response.mensaje); 
+          abrirAlerta('Municipio Procesado', response.mensaje); 
         })
         .withFailureHandler(function(err) { 
           desbloquearInterfaz(); 
-          abrirAlerta('Error del Servidor', 'Error de red: ' + err); 
+          abrirAlerta('Error', 'Fallo al procesar la cola del municipio: ' + err); 
         })
         .apiProcesarMunicipio(municipio);
     }

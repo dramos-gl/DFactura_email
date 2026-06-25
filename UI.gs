@@ -43,6 +43,13 @@ function mostrarSidebar() {
  * Escanea la carpeta física "Facturas no Organizadas" por si el usuario subió archivos a Drive a mano.
  */
 function apiOrganizarCarpetaDescargados() {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000); // Esperar hasta 30 segundos
+  } catch (errLock) {
+    return { exito: false, mensaje: "⚠️ El sistema está ocupado procesando otra operación. Por favor, intenta de nuevo en un momento." };
+  }
+
   try {
     const libroCalculo = obtenerHojaCalculoEcosistema();
     const hojaErrores = obtenerOCrearHojaEnSpreadsheet(libroCalculo, "⚠️ Errores_Cola");
@@ -165,6 +172,8 @@ function apiOrganizarCarpetaDescargados() {
     
   } catch (error) {
     return { exito: false, mensaje: `Error en Consola Local: ${error.toString()}` };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -407,13 +416,16 @@ function extraerIdDeUrlDrive(url) {
 function apiObtenerMetricasBackfill(scope, campos) {
   const ss = obtenerHojaCalculoEcosistema();
   let claves = Object.keys(CONFIG_MUNICIPIOS);
+  let resolvedScope = scope; // Snapshot del ámbito resuelto para congelar en el cliente
   
   if (scope === "ACTIVE") {
     const activeSheetName = ss.getActiveSheet().getName();
     const match = Object.keys(CONFIG_MUNICIPIOS).find(k => CONFIG_MUNICIPIOS[k].hojaDestino === activeSheetName);
     claves = match ? [match] : [];
+    resolvedScope = match ? match : "NONE"; // Congelar al municipio concreto detectado
   } else if (scope && scope !== "ALL") {
     claves = [scope];
+    resolvedScope = scope;
   }
   
   // Si campos es omitido, activar todos por defecto para retrocompatibilidad
@@ -455,7 +467,7 @@ function apiObtenerMetricasBackfill(scope, campos) {
       }
     }
   }
-  return { totalPendientes: totalPendientes };
+  return { totalPendientes: totalPendientes, resolvedScope: resolvedScope };
 }
 
 /**
